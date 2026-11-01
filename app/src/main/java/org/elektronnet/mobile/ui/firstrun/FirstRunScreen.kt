@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -66,6 +67,7 @@ import org.elektronnet.mobile.wallet.DiceCheck
 import org.elektronnet.mobile.wallet.DiceIssue
 import org.elektronnet.mobile.wallet.EntropyGenerator
 import org.elektronnet.mobile.wallet.PhraseStrength
+import org.elektronnet.mobile.wallet.PhraseInput
 import org.elektronnet.mobile.wallet.SetupRequest
 import org.elektronnet.mobile.wallet.TouchEntropy
 import org.elektronnet.mobile.wallet.BootstrapFailure
@@ -410,15 +412,31 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                 val valid = bip39.validate(words)
                 Text(stringResource(R.string.fr_restore_title), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.fr_restore_body))
+                val unknown = PhraseInput.unknown(text, bip39)
+                val typing = PhraseInput.partial(text)
+                // like Electrum: the matching words of the list stand above the field, a fixed height keeps the field from jumping
+                val hints = bip39.suggestions(typing, 8)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().height(40.dp).horizontalScroll(rememberScrollState()),
+                ) {
+                    hints.forEach { word ->
+                        FilterChip(selected = false, onClick = { text = PhraseInput.complete(text, word) }, label = { Text(word) })
+                    }
+                }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
                     minLines = 3,
-                    isError = words.size >= 12 && !valid,
+                    isError = unknown.isNotEmpty() || (words.size >= 12 && !valid),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (words.size >= 12 && !valid) {
+                Text(stringResource(R.string.fr_restore_count, words.size), style = MaterialTheme.typography.bodySmall)
+                if (unknown.isNotEmpty()) {
+                    Text(stringResource(R.string.fr_restore_unknown, unknown.first()), color = MaterialTheme.colorScheme.error)
+                } else if (words.size >= 12 && !valid) {
                     Text(stringResource(R.string.fr_restore_invalid), color = MaterialTheme.colorScheme.error)
                 }
                 Button(
