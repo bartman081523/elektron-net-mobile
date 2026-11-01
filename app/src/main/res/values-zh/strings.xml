@@ -602,6 +602,11 @@
     <string name="fr_pass_body">发送币时需要此口令。它不是您的恢复短语，也无法恢复您的钱包。</string>
     <string name="fr_pass_label">口令</string>
     <string name="fr_pass_confirm">再次输入口令</string>
+    <string name="fr_extra_switch">使用额外单词（第25个单词），高级</string>
+    <string name="fr_extra_warn_new">可选。额外单词会加到您的恢复短语中。没有它，即使有您的单词，任何人也无法打开此钱包。恢复时需要单词和额外单词，没有人能替您找回。请与单词分开记录。</string>
+    <string name="fr_extra_warn_restore">请输入创建此钱包时使用的额外单词。额外单词错误会打开另一个空钱包，且不会显示任何错误。</string>
+    <string name="fr_extra_label">额外单词（第25个）</string>
+    <string name="fr_extra_confirm">再次输入额外单词</string>
     <string name="fr_pass_short">至少使用 %1$d 个字符。</string>
     <string name="fr_pass_weak">弱。越长越好。</string>
     <string name="fr_pass_fair">一般。</string>

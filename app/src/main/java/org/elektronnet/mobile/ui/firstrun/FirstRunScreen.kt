@@ -85,6 +85,8 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
     var walletLabel by remember { mutableStateOf("") }
     val walletName = remember { if (addWallet) NodeHost.nextWalletName() else org.elektronnet.mobile.wallet.WalletBootstrap.DEFAULT_WALLET }
     var passphrase by remember { mutableStateOf("") }
+    var useExtra by remember { mutableStateOf(false) }
+    var extraWord by remember { mutableStateOf("") }
     var strength by remember { mutableStateOf(PhraseStrength.Words12) }
     var entropyError by remember { mutableStateOf(false) }
     val entropyGenerator = remember { EntropyGenerator() }
@@ -101,8 +103,9 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
     BackHandler(enabled = FirstRunFlow.back(state) != null || addWallet) { FirstRunFlow.back(state)?.let { state = it } ?: onCancel() }
 
     fun submit(recover: Boolean) {
-        NodeHost.beginSetup(SetupRequest(state.phrase, passphrase, recover, walletName), walletLabel)
+        NodeHost.beginSetup(SetupRequest(state.phrase, passphrase, recover, walletName, seedPassphrase = if (useExtra) extraWord else ""), walletLabel)
         passphrase = ""
+        extraWord = ""
         state = state.copy(step = FirstRunStep.Done, phrase = emptyList())
         onFinished()
     }
@@ -394,6 +397,10 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                     onValue = { passphrase = it },
                     failure = state.failure,
                     restore = state.restore,
+                    useExtra = useExtra,
+                    onUseExtra = { useExtra = it; if (!it) extraWord = "" },
+                    extra = extraWord,
+                    onExtra = { extraWord = it },
                     onSubmit = { submit(recover = state.restore) },
                 )
             }
@@ -446,9 +453,14 @@ private fun PassphraseStep(
     onValue: (String) -> Unit,
     failure: BootstrapFailure?,
     restore: Boolean,
+    useExtra: Boolean,
+    onUseExtra: (Boolean) -> Unit,
+    extra: String,
+    onExtra: (String) -> Unit,
     onSubmit: () -> Unit,
 ) {
     var confirm by remember { mutableStateOf("") }
+    var extraConfirm by remember { mutableStateOf("") }
     val strength = PassphraseCheck.strength(value)
     Text(stringResource(R.string.fr_pass_title), style = MaterialTheme.typography.headlineMedium)
     Text(stringResource(R.string.fr_pass_body))
@@ -480,10 +492,35 @@ private fun PassphraseStep(
         isError = confirm.isNotEmpty() && confirm != value,
         modifier = Modifier.fillMaxWidth(),
     )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.fr_extra_switch), modifier = Modifier.weight(1f))
+        Switch(checked = useExtra, onCheckedChange = { onUseExtra(it); extraConfirm = "" })
+    }
+    if (useExtra) {
+        Text(stringResource(if (restore) R.string.fr_extra_warn_restore else R.string.fr_extra_warn_new), color = MaterialTheme.colorScheme.primary)
+        SecretField(
+            value = extra,
+            onValueChange = onExtra,
+            label = { Text(stringResource(R.string.fr_extra_label)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (!restore) SecretField(
+            value = extraConfirm,
+            onValueChange = { extraConfirm = it },
+            label = { Text(stringResource(R.string.fr_extra_confirm)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            isError = extraConfirm.isNotEmpty() && extraConfirm != extra,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
     failure?.let { Text(stringResource(failureText(it)), color = MaterialTheme.colorScheme.error) }
+    val extraOk = !useExtra || (extra.isNotEmpty() && (restore || extra == extraConfirm))
     Button(
         onClick = onSubmit,
-        enabled = PassphraseCheck.acceptable(value) && value == confirm,
+        enabled = PassphraseCheck.acceptable(value) && value == confirm && extraOk,
         modifier = Modifier.fillMaxWidth(),
     ) { Text(stringResource(if (restore) R.string.fr_restore_action else R.string.fr_create_action)) }
 }

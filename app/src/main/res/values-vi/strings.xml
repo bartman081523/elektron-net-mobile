@@ -602,6 +602,11 @@
     <string name="fr_pass_body">Bạn cần passphrase này để gửi coin. Nó không phải là cụm từ khôi phục và không thể khôi phục ví của bạn.</string>
     <string name="fr_pass_label">Passphrase</string>
     <string name="fr_pass_confirm">Nhập lại passphrase</string>
+    <string name="fr_extra_switch">Dùng từ bổ sung (từ thứ 25), nâng cao</string>
+    <string name="fr_extra_warn_new">Tùy chọn. Từ bổ sung được thêm vào cụm từ khôi phục. Không có nó, không ai mở được ví này, kể cả khi có các từ của bạn. Để khôi phục cần cả các từ và từ bổ sung. Không ai khôi phục nó giúp bạn. Hãy ghi riêng, tách khỏi các từ.</string>
+    <string name="fr_extra_warn_restore">Nhập từ bổ sung bạn đã dùng khi tạo ví này. Từ bổ sung sai sẽ mở một ví khác, trống, và không báo lỗi.</string>
+    <string name="fr_extra_label">Từ bổ sung (từ thứ 25)</string>
+    <string name="fr_extra_confirm">Nhập lại từ bổ sung</string>
     <string name="fr_pass_short">Dùng ít nhất %1$d ký tự.</string>
     <string name="fr_pass_weak">Yếu. Dài hơn thì tốt hơn.</string>
     <string name="fr_pass_fair">Trung bình.</string>

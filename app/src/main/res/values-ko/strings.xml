@@ -602,6 +602,11 @@
     <string name="fr_pass_body">코인을 보내려면 이 암호가 필요합니다. 복구 문구가 아니며 지갑을 복원할 수 없습니다.</string>
     <string name="fr_pass_label">암호</string>
     <string name="fr_pass_confirm">암호 다시 입력</string>
+    <string name="fr_extra_switch">추가 단어(25번째 단어) 사용, 고급</string>
+    <string name="fr_extra_warn_new">선택 사항입니다. 추가 단어는 복구 문구에 더해집니다. 이 단어가 없으면 단어가 있어도 아무도 이 지갑을 열 수 없습니다. 복원하려면 단어와 추가 단어가 모두 필요하며, 아무도 대신 복구해 줄 수 없습니다. 단어와 따로 적어 두세요.</string>
+    <string name="fr_extra_warn_restore">이 지갑을 만들 때 사용한 추가 단어를 입력하세요. 잘못된 추가 단어는 다른 빈 지갑을 열며 오류가 표시되지 않습니다.</string>
+    <string name="fr_extra_label">추가 단어(25번째)</string>
+    <string name="fr_extra_confirm">추가 단어 다시 입력</string>
     <string name="fr_pass_short">%1$d자 이상 사용하세요.</string>
     <string name="fr_pass_weak">약함. 더 길수록 좋습니다.</string>
     <string name="fr_pass_fair">보통.</string>

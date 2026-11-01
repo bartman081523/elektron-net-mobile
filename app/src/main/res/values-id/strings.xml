@@ -602,6 +602,11 @@
     <string name="fr_pass_body">Anda membutuhkan passphrase ini untuk mengirim koin. Ini bukan frasa pemulihan Anda dan tidak dapat memulihkan dompet Anda.</string>
     <string name="fr_pass_label">Passphrase</string>
     <string name="fr_pass_confirm">Ulangi passphrase</string>
+    <string name="fr_extra_switch">Gunakan kata tambahan (kata ke-25), lanjutan</string>
+    <string name="fr_extra_warn_new">Opsional. Kata tambahan ditambahkan ke frasa pemulihan Anda. Tanpa kata itu tak seorang pun dapat membuka dompet ini, juga dengan kata-kata Anda. Untuk memulihkan diperlukan kata-kata dan kata tambahan. Tidak ada yang dapat memulihkannya untuk Anda. Tulis terpisah dari kata-kata.</string>
+    <string name="fr_extra_warn_restore">Masukkan kata tambahan yang Anda pakai saat membuat dompet ini. Kata tambahan yang salah membuka dompet lain yang kosong dan tidak menampilkan kesalahan.</string>
+    <string name="fr_extra_label">Kata tambahan (kata ke-25)</string>
+    <string name="fr_extra_confirm">Ulangi kata tambahan</string>
     <string name="fr_pass_short">Gunakan minimal %1$d karakter.</string>
     <string name="fr_pass_weak">Lemah. Lebih panjang lebih baik.</string>
     <string name="fr_pass_fair">Cukup.</string>

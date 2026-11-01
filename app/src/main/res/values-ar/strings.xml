@@ -602,6 +602,11 @@
     <string name="fr_pass_body">تحتاج إلى عبارة المرور هذه لإرسال العملات. ليست عبارة الاسترداد ولا يمكنها استعادة محفظتك.</string>
     <string name="fr_pass_label">عبارة المرور</string>
     <string name="fr_pass_confirm">أعد كتابة عبارة المرور</string>
+    <string name="fr_extra_switch">استخدام كلمة إضافية (الكلمة 25)، متقدم</string>
+    <string name="fr_extra_warn_new">اختياري. تُضاف الكلمة الإضافية إلى عبارة الاسترداد. بدونها لا يمكن لأحد فتح هذه المحفظة حتى مع كلماتك. للاستعادة تحتاج الكلمات والكلمة الإضافية. لا يمكن لأحد استرجاعها لك. اكتبها بشكل منفصل عن الكلمات.</string>
+    <string name="fr_extra_warn_restore">أدخل الكلمة الإضافية التي استخدمتها عند إنشاء هذه المحفظة. كلمة إضافية خاطئة تفتح محفظة مختلفة وفارغة دون أي خطأ.</string>
+    <string name="fr_extra_label">الكلمة الإضافية (الكلمة 25)</string>
+    <string name="fr_extra_confirm">أعد كتابة الكلمة الإضافية</string>
     <string name="fr_pass_short">استخدم %1$d أحرف على الأقل.</string>
     <string name="fr_pass_weak">ضعيفة. الأطول أفضل.</string>
     <string name="fr_pass_fair">مقبولة.</string>

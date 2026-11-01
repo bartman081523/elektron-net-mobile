@@ -602,6 +602,11 @@
     <string name="fr_pass_body">कॉइन भेजने के लिए आपको इस पासफ़्रेज़ की ज़रूरत होगी। यह आपका रिकवरी फ़्रेज़ नहीं है और इससे आपका वॉलेट रिस्टोर नहीं हो सकता।</string>
     <string name="fr_pass_label">पासफ़्रेज़</string>
     <string name="fr_pass_confirm">पासफ़्रेज़ दोहराएँ</string>
+    <string name="fr_extra_switch">अतिरिक्त शब्द (25वाँ शब्द) उपयोग करें, उन्नत</string>
+    <string name="fr_extra_warn_new">वैकल्पिक। अतिरिक्त शब्द आपके रिकवरी वाक्यांश में जुड़ता है। इसके बिना कोई भी, आपके शब्दों के साथ भी, यह वॉलेट नहीं खोल सकता। बहाल करने के लिए शब्द और अतिरिक्त शब्द दोनों चाहिए। कोई इसे आपके लिए वापस नहीं ला सकता। इसे शब्दों से अलग लिखें।</string>
+    <string name="fr_extra_warn_restore">वह अतिरिक्त शब्द दर्ज करें जो इस वॉलेट को बनाते समय उपयोग किया था। गलत अतिरिक्त शब्द एक अलग, खाली वॉलेट खोलता है और कोई त्रुटि नहीं दिखाता।</string>
+    <string name="fr_extra_label">अतिरिक्त शब्द (25वाँ शब्द)</string>
+    <string name="fr_extra_confirm">अतिरिक्त शब्द दोहराएँ</string>
     <string name="fr_pass_short">कम से कम %1$d अक्षर इस्तेमाल करें।</string>
     <string name="fr_pass_weak">कमज़ोर। लंबा बेहतर है।</string>
     <string name="fr_pass_fair">ठीक-ठाक।</string>

@@ -602,6 +602,11 @@
     <string name="fr_pass_body">Du brauchst diese Passphrase, um Coins zu senden. Sie ist nicht deine Recovery-Phrase und kann deine Wallet nicht wiederherstellen.</string>
     <string name="fr_pass_label">Passphrase</string>
     <string name="fr_pass_confirm">Passphrase wiederholen</string>
+    <string name="fr_extra_switch">Zusatzwort (25. Wort) verwenden, für Fortgeschrittene</string>
+    <string name="fr_extra_warn_new">Optional. Das Zusatzwort wird zu deiner Recovery-Phrase hinzugefügt. Ohne es kann niemand diese Wallet öffnen, auch nicht mit deinen Wörtern. Zum Wiederherstellen brauchst du die Wörter und das Zusatzwort. Niemand kann es für dich wiederherstellen. Schreibe es getrennt von den Wörtern auf.</string>
+    <string name="fr_extra_warn_restore">Gib das Zusatzwort ein, das du beim Erstellen dieser Wallet benutzt hast. Ein falsches Zusatzwort öffnet eine andere, leere Wallet und zeigt keinen Fehler.</string>
+    <string name="fr_extra_label">Zusatzwort (25. Wort)</string>
+    <string name="fr_extra_confirm">Zusatzwort wiederholen</string>
     <string name="fr_pass_short">Verwende mindestens %1$d Zeichen.</string>
     <string name="fr_pass_weak">Schwach. Länger ist besser.</string>
     <string name="fr_pass_fair">Ordentlich.</string>
