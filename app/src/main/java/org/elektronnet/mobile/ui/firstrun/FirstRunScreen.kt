@@ -89,6 +89,7 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
     var passphrase by remember { mutableStateOf("") }
     var useExtra by remember { mutableStateOf(false) }
     var extraWord by remember { mutableStateOf("") }
+    var extraConfirm by remember { mutableStateOf("") }
     var strength by remember { mutableStateOf(PhraseStrength.Words12) }
     var entropyError by remember { mutableStateOf(false) }
     val entropyGenerator = remember { EntropyGenerator() }
@@ -108,6 +109,8 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
         NodeHost.beginSetup(SetupRequest(state.phrase, passphrase, recover, walletName, seedPassphrase = if (useExtra) extraWord else ""), walletLabel)
         passphrase = ""
         extraWord = ""
+        extraConfirm = ""
+        useExtra = false
         state = state.copy(step = FirstRunStep.Done, phrase = emptyList())
         onFinished()
     }
@@ -364,7 +367,20 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                         }
                     }
                 }
-                Button(onClick = { state = FirstRunFlow.next(state) }, modifier = Modifier.fillMaxWidth()) {
+                ExtraSeedWord(
+                    useExtra = useExtra,
+                    onUseExtra = { useExtra = it; if (!it) { extraWord = ""; extraConfirm = "" } },
+                    extra = extraWord,
+                    onExtra = { extraWord = it },
+                    confirm = extraConfirm,
+                    onConfirm = { extraConfirm = it },
+                    restore = false,
+                )
+                Button(
+                    onClick = { state = FirstRunFlow.next(state) },
+                    enabled = !useExtra || (extraWord.isNotEmpty() && extraWord == extraConfirm),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.fr_phrase_written))
                 }
             }
@@ -399,10 +415,6 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                     onValue = { passphrase = it },
                     failure = state.failure,
                     restore = state.restore,
-                    useExtra = useExtra,
-                    onUseExtra = { useExtra = it; if (!it) extraWord = "" },
-                    extra = extraWord,
-                    onExtra = { extraWord = it },
                     onSubmit = { submit(recover = state.restore) },
                 )
             }
@@ -439,9 +451,18 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                 } else if (words.size >= 12 && !valid) {
                     Text(stringResource(R.string.fr_restore_invalid), color = MaterialTheme.colorScheme.error)
                 }
+                ExtraSeedWord(
+                    useExtra = useExtra,
+                    onUseExtra = { useExtra = it; if (!it) { extraWord = ""; extraConfirm = "" } },
+                    extra = extraWord,
+                    onExtra = { extraWord = it },
+                    confirm = extraConfirm,
+                    onConfirm = { extraConfirm = it },
+                    restore = true,
+                )
                 Button(
                     onClick = { state = FirstRunFlow.next(state.copy(phrase = words)) },
-                    enabled = valid,
+                    enabled = valid && (!useExtra || extraWord.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.fr_continue)) }
             }
@@ -471,14 +492,9 @@ private fun PassphraseStep(
     onValue: (String) -> Unit,
     failure: BootstrapFailure?,
     restore: Boolean,
-    useExtra: Boolean,
-    onUseExtra: (Boolean) -> Unit,
-    extra: String,
-    onExtra: (String) -> Unit,
     onSubmit: () -> Unit,
 ) {
     var confirm by remember { mutableStateOf("") }
-    var extraConfirm by remember { mutableStateOf("") }
     val strength = PassphraseCheck.strength(value)
     Text(stringResource(R.string.fr_pass_title), style = MaterialTheme.typography.headlineMedium)
     Text(stringResource(R.string.fr_pass_body))
@@ -510,35 +526,10 @@ private fun PassphraseStep(
         isError = confirm.isNotEmpty() && confirm != value,
         modifier = Modifier.fillMaxWidth(),
     )
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.fr_extra_switch), modifier = Modifier.weight(1f))
-        Switch(checked = useExtra, onCheckedChange = { onUseExtra(it); extraConfirm = "" })
-    }
-    if (useExtra) {
-        Text(stringResource(if (restore) R.string.fr_extra_warn_restore else R.string.fr_extra_warn_new), color = MaterialTheme.colorScheme.primary)
-        SecretField(
-            value = extra,
-            onValueChange = onExtra,
-            label = { Text(stringResource(R.string.fr_extra_label)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (!restore) SecretField(
-            value = extraConfirm,
-            onValueChange = { extraConfirm = it },
-            label = { Text(stringResource(R.string.fr_extra_confirm)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            isError = extraConfirm.isNotEmpty() && extraConfirm != extra,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
     failure?.let { Text(stringResource(failureText(it)), color = MaterialTheme.colorScheme.error) }
-    val extraOk = !useExtra || (extra.isNotEmpty() && (restore || extra == extraConfirm))
     Button(
         onClick = onSubmit,
-        enabled = PassphraseCheck.acceptable(value) && value == confirm && extraOk,
+        enabled = PassphraseCheck.acceptable(value) && value == confirm,
         modifier = Modifier.fillMaxWidth(),
     ) { Text(stringResource(if (restore) R.string.fr_restore_action else R.string.fr_create_action)) }
 }
@@ -551,4 +542,41 @@ private fun failureText(failure: BootstrapFailure): Int = when (failure) {
     BootstrapFailure.WeakPassphrase -> R.string.fr_pass_weak
     BootstrapFailure.WrongPassphrase -> R.string.send_err_passphrase
     BootstrapFailure.ImportFailed, BootstrapFailure.Unknown -> R.string.fr_err_unknown
+}
+
+// the optional extra seed word (BIP 39 passphrase), asked next to the recovery words like in Electrum
+@Composable
+private fun ExtraSeedWord(
+    useExtra: Boolean,
+    onUseExtra: (Boolean) -> Unit,
+    extra: String,
+    onExtra: (String) -> Unit,
+    confirm: String,
+    onConfirm: (String) -> Unit,
+    restore: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.fr_extra_switch), modifier = Modifier.weight(1f))
+        Switch(checked = useExtra, onCheckedChange = onUseExtra)
+    }
+    if (useExtra) {
+        Text(stringResource(if (restore) R.string.fr_extra_warn_restore else R.string.fr_extra_warn_new), color = MaterialTheme.colorScheme.primary)
+        SecretField(
+            value = extra,
+            onValueChange = onExtra,
+            label = { Text(stringResource(R.string.fr_extra_label)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (!restore) SecretField(
+            value = confirm,
+            onValueChange = onConfirm,
+            label = { Text(stringResource(R.string.fr_extra_confirm)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            isError = confirm.isNotEmpty() && confirm != extra,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
