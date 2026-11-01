@@ -3,7 +3,7 @@
 - **Version:** 0.29 (draft)
 - **Date:** October 30, 2026
 - **Audience:** Users, testers and developers of the Elektron Net Android wallet
-- **Authors:** Elektron Net Developers, Ali Kutlusoy ([@kutlusoy](https://x.com/kutlusoy)), Milio aka 1000mio ([@spiroflex](https://x.com/spiroflex)) 🇪🇸
+- **Authors:** Elektron Net Developers, Ali Kutlusoy ([@kutlusoy](https://x.com/kutlusoy)), Milio aka 1000io ([@spiroflex](https://x.com/spiroflex)) 🇪🇸
 - **Reference implementation:** [`elektron-net`](https://github.com/kutlusoy/elektron-net) `src/wallet/wallet.cpp`, `src/validation.cpp`, `src/kernel/chainparams.cpp` (treat as ground truth for node behavior)
 - **See also:** [`doc-elektron/guideline-mobile-fullnode-wallet-plan.md`](./doc-elektron/guideline-mobile-fullnode-wallet-plan.md), [`doc-elektron/guideline-ui-design-system.md`](./doc-elektron/guideline-ui-design-system.md), [`doc-elektron/guideline-distribution-and-signing.md`](./doc-elektron/guideline-distribution-and-signing.md), [`doc-elektron/guideline-tor-and-i2p.md`](./doc-elektron/guideline-tor-and-i2p.md), [`doc-elektron/CHANGELOG-Release-m0.2.0.md`](./doc-elektron/CHANGELOG-Release-m0.2.0.md), [`WHITEPAPER.md`](./WHITEPAPER.md), [`elektron-net-electrum`](https://github.com/kutlusoy/elektron-net-electrum), [`WHITEPAPER.md` of the node](https://github.com/kutlusoy/elektron-net/blob/main/WHITEPAPER.md)
 
@@ -189,7 +189,7 @@ The full requirement list is in plan section 9.
 
 - **Elektron Net Developers:** development of the app and the node integration.
 - **Ali Kutlusoy, X [@kutlusoy](https://x.com/kutlusoy):** founder of Elektron Net and lead of this app.
-- **Milio aka 1000mio, X [@spiroflex](https://x.com/spiroflex) 🇪🇸 (Spain):** co-author and the originator of the idea for this successor app.
+- **Milio aka 1000io, X [@spiroflex](https://x.com/spiroflex) 🇪🇸 (Spain):** co-author and the originator of the idea for this successor app.
 
 ## 11. Links
 
@@ -200,4 +200,4 @@ The full requirement list is in plan section 9.
 
 ## 12. License
 
-Released under the [MIT License](./LICENSE). Copyright (c) 2026 Elektron Net Developers, Ali Kutlusoy (@kutlusoy) and Milio aka 1000mio (@spiroflex). The app is called "Elektron" (mainnet) and "Elektron (T)" (testnet). This project builds and bundles software from Elektron Net and uses third-party Android and Kotlin libraries, each under its own license. Review the upstream licenses before redistribution.
+Released under the [MIT License](./LICENSE). Copyright (c) 2026 Elektron Net Developers, Ali Kutlusoy (@kutlusoy) and Milio aka 1000io (@spiroflex). The app is called "Elektron" (mainnet) and "Elektron (T)" (testnet). This project builds and bundles software from Elektron Net and uses third-party Android and Kotlin libraries, each under its own license. Review the upstream licenses before redistribution.
