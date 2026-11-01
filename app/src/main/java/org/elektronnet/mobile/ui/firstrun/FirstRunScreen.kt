@@ -231,6 +231,10 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                         } else {
                             val words = bip39.fromEntropy(entropy)
                             entropy.fill(0)
+                            // new words, so an extra seed word typed for the earlier words is dropped
+                            useExtra = false
+                            extraWord = ""
+                            extraConfirm = ""
                             state = FirstRunFlow.next(state.copy(phrase = words))
                         }
                     },
@@ -291,6 +295,10 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                         } else {
                             val words = bip39.fromEntropy(entropy)
                             entropy.fill(0)
+                            // new words, so an extra seed word typed for the earlier words is dropped
+                            useExtra = false
+                            extraWord = ""
+                            extraConfirm = ""
                             state = FirstRunFlow.next(state.copy(phrase = words))
                         }
                     },
@@ -344,6 +352,10 @@ fun FirstRunScreen(onAllowMetered: (Boolean) -> Unit, onFinished: () -> Unit, ad
                         } else {
                             val words = bip39.fromEntropy(entropy)
                             entropy.fill(0)
+                            // new words, so an extra seed word typed for the earlier words is dropped
+                            useExtra = false
+                            extraWord = ""
+                            extraConfirm = ""
                             state = FirstRunFlow.next(state.copy(phrase = words))
                         }
                     },
