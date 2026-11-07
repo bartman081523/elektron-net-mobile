@@ -25,3 +25,8 @@ This file lists the features this release added. Corrections are not listed.
 
 - While the recovery phrase is typed, the words of the BIP 39 list that match the letters typed so far stand above the field, as in Electrum. A tap completes the word and adds a space.
 - A finished word that is not in the list is named under the field, a counter shows how many words are entered, and "Continue" stays off until the phrase, with its checksum, is valid.
+
+## Mining rewards count to 100 confirmations
+
+- A mining reward is shown with "n of 100 confirmations" while the node still counts it as immature, as the consensus rule (100 blocks) demands, instead of "n of 6". It does not show as confirmed after 6 blocks while it cannot be spent yet. Other payments keep the count of 6.
+
