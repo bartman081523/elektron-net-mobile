@@ -133,8 +133,8 @@ fun AppRoot(onStart: () -> Unit, onStop: () -> Unit, onPause: () -> Unit, onResu
     }
 
     LaunchedEffect(setup) {
-        if (setup is SetupStatus.Ready || setup == SetupStatus.NeedsRescan || setup == SetupStatus.Rescanning) storeReady = true
-        while (setup == SetupStatus.Waiting || setup == SetupStatus.Rescanning || (setup == SetupStatus.NeedsRescan && !NodeHost.needsRescanPassphrase)) {
+        if (setup is SetupStatus.Ready || setup == SetupStatus.NeedsRescan || setup is SetupStatus.Rescanning) storeReady = true
+        while (setup == SetupStatus.Waiting || setup is SetupStatus.Rescanning || (setup == SetupStatus.NeedsRescan && !NodeHost.needsRescanPassphrase)) {
             withContext(Dispatchers.IO) { NodeHost.setupTick() }
             delay(1_000)
         }
@@ -353,6 +353,9 @@ fun AppRoot(onStart: () -> Unit, onStop: () -> Unit, onPause: () -> Unit, onResu
                     wallet = NodeHost.wallets.firstOrNull { it.name == NodeHost.activeWallet },
                     items = histories[NodeHost.activeWallet],
                     onOpenTx = { openTx = it },
+                    syncNote = HomeUiModel.from(snapshot?.headline).syncNote ?: (setup as? org.elektronnet.mobile.wallet.SetupStatus.Rescanning)?.let {
+                        org.elektronnet.mobile.ui.model.SyncNote.ScanningWallet(((it.progress ?: 0.0) * 100).toInt().coerceIn(0, 100))
+                    },
                 )
                 Tab.Node -> androidx.compose.runtime.CompositionLocalProvider(org.elektronnet.mobile.ui.node.LocalPeerScan provides { show(Overlay.PeerScan) }) { NodeScreen(
                     model = NodeTabModel.from(snapshot, settings.userPaused),
