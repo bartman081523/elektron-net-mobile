@@ -359,6 +359,8 @@
     <string name="tools_psbt_desc">Zahlungsdateien von anderen Personen oder Geräten prüfen, signieren, kombinieren und senden</string>
     <string name="tools_sweep_desc">Die Coins eines privaten Schlüssels in deine Wallet verschieben</string>
     <string name="tools_msg_desc">Beweisen, dass eine Adresse dir gehört, oder den Beweis eines anderen prüfen</string>
+    <string name="swap_title">Atomic Swap (KDF)</string>
+    <string name="tools_swap_desc">Dezentraler P2P-Tausch zwischen Bitcoin, Elektron und Ethereum ohne Treuhänder</string>
     <string name="escrow_title">Escrow</string>
     <string name="escrow_intro">Ein Escrow ist eine gemeinsame Wallet. Mehrere Personen halten je einen Schlüssel, und du bestimmst, wie viele davon eine Zahlung freigeben müssen, zum Beispiel 2 von 3 mit Käufer, Verkäufer und einer neutralen Person. Niemand kann allein ausgeben, außer du wählst 1.</string>
     <string name="escrow_none">Noch keine Escrow-Wallets.</string>

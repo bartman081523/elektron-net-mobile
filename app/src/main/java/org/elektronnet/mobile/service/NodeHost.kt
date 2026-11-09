@@ -53,6 +53,9 @@ object NodeHost {
     var networkServices: NetworkServices? = null
         private set
 
+    var kdfSupervisor: org.elektronnet.mobile.kdf.KdfSupervisor? by mutableStateOf(null)
+        private set
+
     var networkPorts: org.elektronnet.mobile.node.NetworkPorts = ChainConfig.networkPorts
         private set
     private var datadir: File? = null
@@ -233,6 +236,7 @@ object NodeHost {
         val datadir = File(app.filesDir, ChainConfig.datadirName)
         datadir.mkdirs()
         this.datadir = datadir
+        val extraArgs = if (ChainConfig.isTestnet) listOf("-addnode=127.0.0.1:18333") else emptyList()
         val config = NodeConfig(
             binary = File(app.applicationInfo.nativeLibraryDir, "libelektrond.so"),
             datadir = datadir,
@@ -243,6 +247,7 @@ object NodeHost {
             homeDir = app.filesDir,
             network = store.loadNetwork(),
             ports = networkPorts,
+            extraArgs = extraArgs,
         )
         val device = AndroidDeviceState(app, datadir)
         val services = NetworkServices(
@@ -273,6 +278,9 @@ object NodeHost {
         org.elektronnet.mobile.wallet.Amount.styleProvider = { org.elektronnet.mobile.ui.theme.NumberState.style() }
         org.elektronnet.mobile.ui.theme.UpdateState.load()
         org.elektronnet.mobile.ui.theme.UiState.settings = store.loadUi(org.elektronnet.mobile.ui.theme.Palettes.all.map { it.key }.toSet())
+        kdfSupervisor = org.elektronnet.mobile.kdf.KdfSupervisor(
+            context = app,
+        )
         return store
     }
 

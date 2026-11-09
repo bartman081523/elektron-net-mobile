@@ -85,7 +85,7 @@ class WalletReaderTest {
         val reader = WalletReader(rpc)
         assertEquals(Balances(250_000_000L, 10_000_000L, 0L), reader.balances())
         assertEquals(listOf("b", "a"), reader.transactions().map { it.txid })
-        assertEquals(listOf("getbalances@elektron", "listtransactions@elektron"), calls)
+        assertEquals(listOf("getbalances@${WalletBootstrap.DEFAULT_WALLET}", "listtransactions@${WalletBootstrap.DEFAULT_WALLET}"), calls)
     }
 
     @Test

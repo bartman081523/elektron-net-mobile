@@ -250,7 +250,7 @@ class WalletBootstrap(
     private class ImportException(message: String) : Exception(message)
 
     companion object {
-        const val DEFAULT_WALLET = "elektron"
+        val DEFAULT_WALLET: String get() = org.elektronnet.mobile.ChainConfig.defaultWallet
         const val WALLET_EXISTS = -4
         const val WRONG_PASSPHRASE = -14
         const val CREATE_UNLOCK_SECONDS = 60

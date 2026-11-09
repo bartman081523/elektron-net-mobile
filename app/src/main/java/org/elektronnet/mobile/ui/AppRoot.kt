@@ -312,7 +312,7 @@ fun AppRoot(onStart: () -> Unit, onStop: () -> Unit, onPause: () -> Unit, onResu
             })
             Box(modifier = Modifier.weight(1f)) {
             when (Tab.entries[tab]) {
-                Tab.Wallet -> if (!walletReady) NoWalletCard(onCreate = { show(Overlay.AddWallet) }) else Column {
+                Tab.Wallet -> if (!walletReady) NoWalletCard(onCreate = { show(Overlay.AddWallet) }, onTools = { show(Overlay.Tools) }) else Column {
                     WalletSwitcher(
                         onDetails = { show(Overlay.Details) },
                         onCoins = { show(Overlay.Coins) },
@@ -349,7 +349,7 @@ fun AppRoot(onStart: () -> Unit, onStop: () -> Unit, onPause: () -> Unit, onResu
                     onSend = { show(Overlay.Send) },
                 )
                 }
-                Tab.History -> if (!walletReady) NoWalletCard(onCreate = { show(Overlay.AddWallet) }) else HistoryScreen(
+                Tab.History -> if (!walletReady) NoWalletCard(onCreate = { show(Overlay.AddWallet) }, onTools = { show(Overlay.Tools) }) else HistoryScreen(
                     wallet = NodeHost.wallets.firstOrNull { it.name == NodeHost.activeWallet },
                     items = histories[NodeHost.activeWallet],
                     onOpenTx = { openTx = it },

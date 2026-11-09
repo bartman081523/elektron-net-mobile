@@ -15,21 +15,23 @@ class WalletRegistryTest {
 
     @Test
     fun namesAlreadyOnDiskAreSkipped() {
+        val def = WalletBootstrap.DEFAULT_WALLET
         val registry = WalletRegistry(MemoryWalletRegistryStore())
-        registry.add("elektron", "")
-        assertEquals("elektron_3", registry.nextName(setOf("elektron_2")))
-        assertEquals("elektron_2", registry.nextName())
+        registry.add(def, "")
+        assertEquals("${def}_3", registry.nextName(setOf("${def}_2")))
+        assertEquals("${def}_2", registry.nextName())
     }
 
     @Test
     fun theActiveWalletIsTheChosenOneOrTheFirst() {
+        val def = WalletBootstrap.DEFAULT_WALLET
         val registry = WalletRegistry(MemoryWalletRegistryStore())
-        registry.add("elektron", "")
-        registry.add("elektron_2", "second")
-        assertEquals("elektron", registry.active().name)
-        registry.setActive("elektron_2")
-        assertEquals("elektron_2", registry.active().name)
-        registry.remove("elektron_2")
-        assertEquals("elektron", registry.active().name)
+        registry.add(def, "")
+        registry.add("${def}_2", "second")
+        assertEquals(def, registry.active().name)
+        registry.setActive("${def}_2")
+        assertEquals("${def}_2", registry.active().name)
+        registry.remove("${def}_2")
+        assertEquals(def, registry.active().name)
     }
 }
