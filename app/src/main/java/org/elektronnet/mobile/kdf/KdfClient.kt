@@ -62,6 +62,16 @@ data class SwapStatus(
     val otherAmount: BigDecimal,
 )
 
+data class WithdrawResult(
+    val txHex: String,
+    val txHash: String,
+    val from: List<String>,
+    val to: List<String>,
+    val totalAmount: BigDecimal,
+    val feeAmount: BigDecimal,
+    val coin: String,
+)
+
 class KdfClient(
     val rpcHost: String = KdfConfig.DEFAULT_RPC_HOST,
     val rpcPort: Int = KdfConfig.DEFAULT_RPC_PORT,
@@ -242,10 +252,10 @@ class KdfClient(
         val myInfo = swapData["my_info"] as? Map<*, *>
         val otherInfo = swapData["other_info"] as? Map<*, *>
 
-        val myCoin = myInfo?.get("coin")?.toString().orEmpty()
-        val otherCoin = otherInfo?.get("coin")?.toString().orEmpty()
-        val myAmount = toDecimal(myInfo?.get("amount"))
-        val otherAmount = toDecimal(otherInfo?.get("amount"))
+        val myCoin = myInfo?.get("my_coin")?.toString() ?: myInfo?.get("coin")?.toString() ?: swapData["maker_coin"]?.toString().orEmpty()
+        val otherCoin = myInfo?.get("other_coin")?.toString() ?: otherInfo?.get("coin")?.toString() ?: swapData["taker_coin"]?.toString().orEmpty()
+        val myAmount = toDecimal(myInfo?.get("my_amount") ?: myInfo?.get("amount") ?: swapData["maker_amount"])
+        val otherAmount = toDecimal(myInfo?.get("other_amount") ?: otherInfo?.get("amount") ?: swapData["taker_amount"])
 
         val error = errorEvents?.firstOrNull()?.toString()
         return SwapStatus(
@@ -266,7 +276,8 @@ class KdfClient(
         val swaps = result["swaps"] as? List<*> ?: return emptyList()
         return swaps.mapNotNull { s ->
             val sm = s as? Map<*, *> ?: return@mapNotNull null
-            val uuid = sm["uuid"]?.toString().orEmpty()
+            val swapData = sm["swap_data"] as? Map<*, *> ?: sm
+            val uuid = swapData["uuid"]?.toString() ?: sm["uuid"]?.toString().orEmpty()
             if (uuid.isEmpty()) return@mapNotNull null
             try {
                 mySwapStatus(uuid)
@@ -292,6 +303,52 @@ class KdfClient(
             "swap_contract_address" to swapContract,
             "mm2" to 1,
         ))
+    }
+
+    fun withdraw(
+        coin: String,
+        toAddress: String,
+        amount: String? = null,
+        max: Boolean = false,
+    ): WithdrawResult {
+        val payload = mutableMapOf<String, Any>(
+            "coin" to coin,
+            "to" to toAddress,
+        )
+        if (max) {
+            payload["max"] = true
+        } else if (amount != null && amount.isNotBlank()) {
+            payload["amount"] = amount
+        } else {
+            payload["max"] = true
+        }
+        val res = call("withdraw", payload)
+        val txHex = res["tx_hex"]?.toString().orEmpty()
+        val txHash = res["tx_hash"]?.toString().orEmpty()
+        val from = (res["from"] as? List<*>)?.mapNotNull { it?.toString() }.orEmpty()
+        val to = (res["to"] as? List<*>)?.mapNotNull { it?.toString() }.orEmpty()
+        val total = toDecimal(res["total_amount"])
+        val feeObj = res["fee_details"] as? Map<*, *>
+        val fee = toDecimal(feeObj?.get("amount"))
+        return WithdrawResult(
+            txHex = txHex,
+            txHash = txHash,
+            from = from,
+            to = to,
+            totalAmount = total,
+            feeAmount = fee,
+            coin = coin,
+        )
+    }
+
+    fun sendRawTransaction(coin: String, txHex: String): String {
+        val res = call("send_raw_transaction", mapOf("coin" to coin, "tx_hex" to txHex))
+        val txHash = res["tx_hash"]?.toString()
+        if (txHash.isNullOrBlank()) {
+            val err = res["error"]?.toString() ?: "Send raw transaction failed"
+            throw RuntimeException(err)
+        }
+        return txHash
     }
 
     private fun parseOrderEntry(obj: Any?): OrderEntry? {

@@ -58,6 +58,14 @@ import org.elektronnet.mobile.kdf.KdfState
 import org.elektronnet.mobile.kdf.MakerOrder
 import org.elektronnet.mobile.kdf.Orderbook
 import org.elektronnet.mobile.kdf.SwapStatus
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.text.style.TextAlign
+import org.elektronnet.mobile.ui.theme.ElektronMono
+import org.elektronnet.mobile.ui.tools.copyText
+import org.elektronnet.mobile.ui.receive.QrView
 import org.elektronnet.mobile.service.NodeHost
 
 private val TESTNET_PAIRS = listOf(
@@ -100,6 +108,10 @@ fun SwapScreen(onBack: () -> Unit) {
     var message by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isOperating by remember { mutableStateOf(false) }
+
+    var withdrawCoin by remember { mutableStateOf<String?>(null) }
+    var withdrawInitialAmount by remember { mutableStateOf("") }
+    var showShareAddressDialog by remember { mutableStateOf(false) }
 
     fun refreshData() {
         val client = kdf?.client ?: return
@@ -233,6 +245,14 @@ fun SwapScreen(onBack: () -> Unit) {
             }
         }
 
+        // Share Address Button
+        OutlinedButton(
+            onClick = { showShareAddressDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("⚡ " + stringResource(R.string.swap_share_address))
+        }
+
         // Balances Row
         Card(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -241,21 +261,37 @@ fun SwapScreen(onBack: () -> Unit) {
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(base, style = MaterialTheme.typography.labelSmall)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(base + " (" + stringResource(R.string.swap_kdf_balance) + ")", style = MaterialTheme.typography.labelSmall)
                     Text(
                         baseBalance?.balance?.toPlainString() ?: "0.00",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
+                    if ((baseBalance?.balance ?: java.math.BigDecimal.ZERO) > java.math.BigDecimal.ZERO) {
+                        TextButton(onClick = {
+                            withdrawCoin = base
+                            withdrawInitialAmount = baseBalance?.balance?.toPlainString().orEmpty()
+                        }) {
+                            Text(stringResource(R.string.swap_withdraw_action), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(rel, style = MaterialTheme.typography.labelSmall)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(rel + " (" + stringResource(R.string.swap_kdf_balance) + ")", style = MaterialTheme.typography.labelSmall)
                     Text(
                         relBalance?.balance?.toPlainString() ?: "0.00",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
+                    if ((relBalance?.balance ?: java.math.BigDecimal.ZERO) > java.math.BigDecimal.ZERO) {
+                        TextButton(onClick = {
+                            withdrawCoin = rel
+                            withdrawInitialAmount = relBalance?.balance?.toPlainString().orEmpty()
+                        }) {
+                            Text(stringResource(R.string.swap_withdraw_action), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
             }
         }
@@ -515,9 +551,258 @@ fun SwapScreen(onBack: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        if (sw.state == "Finished" && sw.otherAmount > java.math.BigDecimal.ZERO) {
+                            Button(
+                                onClick = {
+                                    withdrawCoin = sw.otherCoin
+                                    withdrawInitialAmount = sw.otherAmount.toPlainString()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.swap_claim_reward, sw.otherAmount.toPlainString(), sw.otherCoin))
+                            }
+                        }
                     }
                 }
             }
         }
+
+        if (withdrawCoin != null) {
+            val avail = if (withdrawCoin == base) baseBalance?.balance ?: java.math.BigDecimal.ZERO else relBalance?.balance ?: java.math.BigDecimal.ZERO
+            WithdrawDialog(
+                coin = withdrawCoin!!,
+                initialAmount = withdrawInitialAmount,
+                availableBalance = avail,
+                onDismiss = {
+                    withdrawCoin = null
+                    withdrawInitialAmount = ""
+                },
+                onSuccess = { txId ->
+                    message = "Auszahlung erfolgreich! TxID: ${txId.take(16)}..."
+                    withdrawCoin = null
+                    withdrawInitialAmount = ""
+                    refreshData()
+                },
+            )
+        }
+
+        if (showShareAddressDialog) {
+            ShareAddressDialog(
+                initialCoin = rel,
+                onDismiss = { showShareAddressDialog = false },
+            )
+        }
     }
+}
+
+@Composable
+private fun WithdrawDialog(
+    coin: String,
+    initialAmount: String = "",
+    availableBalance: java.math.BigDecimal,
+    onDismiss: () -> Unit,
+    onSuccess: (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val wallets = NodeHost.wallets
+    val preferredWallet = remember(wallets, coin) {
+        if (coin.contains("BTC", ignoreCase = true)) {
+            wallets.firstOrNull { it.name.contains("btc", ignoreCase = true) || it.label.contains("btc", ignoreCase = true) }?.name ?: NodeHost.activeWallet
+        } else {
+            NodeHost.activeWallet
+        }
+    }
+    var selectedWallet by remember { mutableStateOf(preferredWallet) }
+    var amount by remember { mutableStateOf(initialAmount) }
+    var inProgress by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+    var targetAddress by remember { mutableStateOf("") }
+
+    LaunchedEffect(selectedWallet) {
+        targetAddress = withContext(Dispatchers.IO) {
+            runCatching { NodeHost.receiveWallet(selectedWallet)?.currentAddress() }.getOrNull().orEmpty()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!inProgress) onDismiss() },
+        title = { Text(stringResource(R.string.swap_withdraw_title) + " ($coin)") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.swap_withdraw_target_wallet), style = MaterialTheme.typography.labelMedium)
+                wallets.forEach { w ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !inProgress) {
+                                selectedWallet = w.name
+                            },
+                    ) {
+                        RadioButton(
+                            selected = w.name == selectedWallet,
+                            onClick = {
+                                selectedWallet = w.name
+                            },
+                            enabled = !inProgress,
+                        )
+                        Text(w.label.ifBlank { w.name } + if (w.name == NodeHost.activeWallet) " (Aktiv)" else "")
+                    }
+                }
+
+                if (targetAddress.isNotBlank()) {
+                    Text("Empfangsadresse: $targetAddress", fontFamily = ElektronMono, style = MaterialTheme.typography.bodySmall)
+                }
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text(stringResource(R.string.swap_withdraw_amount) + " ($coin)") },
+                    singleLine = true,
+                    enabled = !inProgress,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        TextButton(onClick = { amount = availableBalance.toPlainString() }, enabled = !inProgress) {
+                            Text(stringResource(R.string.swap_withdraw_max))
+                        }
+                    },
+                )
+                Text("Verfügbar im Mesh: ${availableBalance.toPlainString()} $coin", style = MaterialTheme.typography.bodySmall)
+
+                if (errorText != null) {
+                    ErrorText(errorText!!)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    inProgress = true
+                    errorText = null
+                    scope.launch {
+                        val res = NodeHost.withdrawFromKdfToWallet(
+                            coin = coin,
+                            targetWallet = selectedWallet,
+                            amount = amount.trim().takeIf { it.isNotBlank() },
+                            max = amount.isBlank() || amount == availableBalance.toPlainString(),
+                        )
+                        inProgress = false
+                        res.fold(
+                            onSuccess = { txHash -> onSuccess(txHash) },
+                            onFailure = { err -> errorText = err.message ?: err.toString() },
+                        )
+                    }
+                },
+                enabled = !inProgress && (amount.isNotBlank() || availableBalance > java.math.BigDecimal.ZERO),
+            ) {
+                Text(if (inProgress) stringResource(R.string.swap_withdraw_in_progress) else stringResource(R.string.swap_withdraw_execute))
+            }
+        },
+        dismissButton = {
+            if (!inProgress) {
+                OutlinedButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ShareAddressDialog(
+    initialCoin: String,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val wallets = NodeHost.wallets
+    var selectedCoin by remember { mutableStateOf(initialCoin) }
+    val preferredWallet = remember(wallets, selectedCoin) {
+        if (selectedCoin.contains("BTC", ignoreCase = true)) {
+            wallets.firstOrNull { it.name.contains("btc", ignoreCase = true) || it.label.contains("btc", ignoreCase = true) }?.name ?: NodeHost.activeWallet
+        } else {
+            NodeHost.activeWallet
+        }
+    }
+    var selectedWallet by remember { mutableStateOf(preferredWallet) }
+    var currentAddress by remember { mutableStateOf("") }
+    var copied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedWallet, selectedCoin) {
+        currentAddress = withContext(Dispatchers.IO) {
+            runCatching { NodeHost.receiveWallet(selectedWallet)?.currentAddress() }.getOrNull().orEmpty()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.swap_share_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    listOf("tBTC", "tELEK").forEach { c ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { selectedCoin = c }) {
+                            RadioButton(selected = selectedCoin == c, onClick = { selectedCoin = c })
+                            Text(c)
+                        }
+                    }
+                }
+
+                Text(stringResource(R.string.swap_withdraw_target_wallet), style = MaterialTheme.typography.labelMedium)
+                wallets.forEach { w ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedWallet = w.name
+                            },
+                    ) {
+                        RadioButton(
+                            selected = w.name == selectedWallet,
+                            onClick = {
+                                selectedWallet = w.name
+                            },
+                        )
+                        Text(w.label.ifBlank { w.name })
+                    }
+                }
+
+                if (currentAddress.isNotBlank()) {
+                    Box(modifier = Modifier.size(200.dp)) {
+                        QrView(currentAddress)
+                    }
+                    Text(
+                        currentAddress,
+                        fontFamily = ElektronMono,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.clickable {
+                            copyText(context, "address", currentAddress)
+                            copied = true
+                        },
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            copyText(context, "address", currentAddress)
+                            copied = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (copied) stringResource(R.string.swap_address_copied) else stringResource(R.string.swap_copy_address))
+                    }
+                }
+
+                Hint(stringResource(R.string.swap_share_hint))
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text(stringResource(R.string.action_ok))
+            }
+        },
+    )
 }

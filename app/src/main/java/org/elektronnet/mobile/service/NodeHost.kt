@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.elektronnet.mobile.ChainConfig
 import org.elektronnet.mobile.node.Chain
 import org.elektronnet.mobile.node.NodeConfig
@@ -449,21 +451,41 @@ object NodeHost {
         )
     }
 
-    fun receiveWallet(): ReceiveWallet? {
+    fun receiveWallet(walletName: String = activeWallet): ReceiveWallet? {
         val supervisor = controller?.current?.takeIf { it.state == NodeState.Running } ?: return null
         val store = settings ?: return null
-        val wallet = activeWallet
         return ReceiveWallet(
             rpc = supervisor.rpc.asWalletRpc(),
             store = object : AddressStore {
                 override var current: String?
-                    get() = store.receiveAddressFor(wallet)
+                    get() = store.receiveAddressFor(walletName)
                     set(value) {
-                        store.setReceiveAddressFor(wallet, value)
+                        store.setReceiveAddressFor(walletName, value)
                     }
             },
-            walletName = wallet,
+            walletName = walletName,
         )
+    }
+
+    suspend fun withdrawFromKdfToWallet(
+        coin: String,
+        targetWallet: String = activeWallet,
+        amount: String? = null,
+        max: Boolean = false,
+    ): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val supervisor = kdfSupervisor ?: throw IllegalStateException("KDF supervisor not available")
+            val client = supervisor.client
+            val rw = receiveWallet(targetWallet) ?: throw IllegalStateException("Wallet not ready")
+            val targetAddress = rw.newAddress()
+            val draft = client.withdraw(
+                coin = coin,
+                toAddress = targetAddress,
+                amount = amount,
+                max = max,
+            )
+            client.sendRawTransaction(coin, draft.txHex)
+        }
     }
 
     fun walletReader(): WalletReader? {
