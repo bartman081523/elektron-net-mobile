@@ -213,7 +213,7 @@ class KdfSupervisor(
 
     private fun activateDefaultCoins() {
         if (ChainConfig.isTestnet) {
-            val electrumServers = listOf("127.0.0.1:50005", "100.64.0.2:50002", "192.168.178.21:50002")
+            val electrumServers = listOf("127.0.0.1:50005")
             try {
                 client.enableElectrum("tELEK", electrumServers)
                 output.add("tELEK activated on KDF daemon")

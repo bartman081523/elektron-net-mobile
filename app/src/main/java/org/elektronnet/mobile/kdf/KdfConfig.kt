@@ -29,13 +29,9 @@ object KdfConfig {
 
     val TELEK_ELECTRUM_SERVERS = listOf(
         "127.0.0.1:50005",
-        "100.64.0.2:50002",
-        "192.168.178.21:50002",
     )
 
     val TBTC_ELECTRUM_SERVERS = listOf(
-        "100.64.0.2:50002",
-        "192.168.178.21:50002",
         "127.0.0.1:50005",
     )
 
