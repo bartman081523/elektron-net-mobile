@@ -60,6 +60,8 @@ data class SwapStatus(
     val otherCoin: String,
     val myAmount: BigDecimal,
     val otherAmount: BigDecimal,
+    val isPruned: Boolean = false,
+    val secretHash: String? = null,
 )
 
 data class WithdrawResult(
@@ -257,6 +259,18 @@ class KdfClient(
         val myAmount = toDecimal(myInfo?.get("my_amount") ?: myInfo?.get("amount") ?: swapData["maker_amount"])
         val otherAmount = toDecimal(myInfo?.get("other_amount") ?: otherInfo?.get("amount") ?: swapData["taker_amount"])
 
+        var secretHash: String? = null
+        for (e in eventsList) {
+            val em = e as? Map<*, *> ?: continue
+            val ev = em["event"] as? Map<*, *> ?: continue
+            val data = ev["data"] as? Map<*, *> ?: continue
+            val sh = data["secret_hash"]?.toString()
+            if (!sh.isNullOrEmpty()) {
+                secretHash = sh
+                break
+            }
+        }
+
         val error = errorEvents?.firstOrNull()?.toString()
         return SwapStatus(
             uuid = uuid,
@@ -267,6 +281,8 @@ class KdfClient(
             otherCoin = otherCoin,
             myAmount = myAmount,
             otherAmount = otherAmount,
+            isPruned = false,
+            secretHash = secretHash,
         )
     }
 

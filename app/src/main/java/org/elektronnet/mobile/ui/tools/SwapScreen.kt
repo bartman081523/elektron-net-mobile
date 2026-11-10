@@ -122,7 +122,7 @@ fun SwapScreen(onBack: () -> Unit) {
                 val bb = runCatching { client.myBalance(base) }.getOrNull()
                 val rb = runCatching { client.myBalance(rel) }.getOrNull()
                 val ords = client.myOrders().makerOrders
-                val swaps = client.myRecentSwaps(5)
+                val swaps = kdf.getRecentSwapsMerged(10)
                 withContext(Dispatchers.Main) {
                     orderbook = ob
                     baseBalance = bb
@@ -524,16 +524,38 @@ fun SwapScreen(onBack: () -> Unit) {
 
         // Recent Swaps
         if (recentSwaps.isNotEmpty()) {
-            Text("Letzte Swaps", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Letzte Swaps", style = MaterialTheme.typography.titleMedium)
+                val unprunedCount = recentSwaps.count { it.state == "Finished" && !it.isPruned }
+                if (unprunedCount > 0) {
+                    TextButton(
+                        onClick = {
+                            scope.launch(Dispatchers.IO) {
+                                kdf.pruner.pruneAllFinished(recentSwaps)
+                                refreshData()
+                            }
+                        },
+                    ) {
+                        Text(stringResource(R.string.swap_prune_all), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
             recentSwaps.forEach { sw ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "${sw.myAmount.toPlainString()} ${sw.myCoin} -> ${sw.otherAmount.toPlainString()} ${sw.otherCoin}",
+                                if (sw.isPruned) "${sw.myAmount.toPlainString()} ${sw.myCoin} ⇄ ${sw.otherAmount.toPlainString()} ${sw.otherCoin}"
+                                else "${sw.myAmount.toPlainString()} ${sw.myCoin} -> ${sw.otherAmount.toPlainString()} ${sw.otherCoin}",
                                 fontWeight = FontWeight.SemiBold,
                             )
                             val stateColor = when (sw.state) {
@@ -543,24 +565,72 @@ fun SwapScreen(onBack: () -> Unit) {
                             }
                             Text(sw.state, color = stateColor, fontWeight = FontWeight.Bold)
                         }
-                        Text("UUID: ${sw.uuid.take(12)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-                        if (sw.events.isNotEmpty()) {
+
+                        if (sw.isPruned) {
+                            val priceStr = if (sw.myAmount > java.math.BigDecimal.ZERO) {
+                                try {
+                                    sw.otherAmount.divide(sw.myAmount, 6, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+                                } catch (_: Exception) {
+                                    "-"
+                                }
+                            } else "-"
                             Text(
-                                "Schritte: " + sw.events.joinToString(" -> ") { it.type },
+                                stringResource(R.string.swap_pruned_rate, "$priceStr ${sw.otherCoin}/${sw.myCoin}"),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
                             )
-                        }
-                        if (sw.state == "Finished" && sw.otherAmount > java.math.BigDecimal.ZERO) {
-                            Button(
-                                onClick = {
-                                    withdrawCoin = sw.otherCoin
-                                    withdrawInitialAmount = sw.otherAmount.toPlainString()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(stringResource(R.string.swap_claim_reward, sw.otherAmount.toPlainString(), sw.otherCoin))
+                            Text(
+                                stringResource(R.string.swap_pruned_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF2E7D32),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (!sw.secretHash.isNullOrEmpty()) {
+                                Text(
+                                    stringResource(R.string.swap_pruned_proof, sw.secretHash.take(16) + "..."),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            Text("UUID: ${sw.uuid.take(12)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                            if (sw.events.isNotEmpty()) {
+                                Text(
+                                    "Schritte: " + sw.events.joinToString(" -> ") { it.type },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (sw.state == "Finished") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    if (sw.otherAmount > java.math.BigDecimal.ZERO) {
+                                        Button(
+                                            onClick = {
+                                                withdrawCoin = sw.otherCoin
+                                                withdrawInitialAmount = sw.otherAmount.toPlainString()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(stringResource(R.string.swap_claim_reward, sw.otherAmount.toPlainString(), sw.otherCoin))
+                                        }
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            scope.launch(Dispatchers.IO) {
+                                                kdf.pruner.pruneSwap(sw)
+                                                refreshData()
+                                            }
+                                        },
+                                    ) {
+                                        Text(stringResource(R.string.swap_prune_single), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
                             }
                         }
                     }
@@ -580,9 +650,17 @@ fun SwapScreen(onBack: () -> Unit) {
                 },
                 onSuccess = { txId ->
                     message = "Auszahlung erfolgreich! TxID: ${txId.take(16)}..."
+                    val finishedToPrune = recentSwaps.find { it.state == "Finished" && !it.isPruned && it.otherCoin == withdrawCoin }
+                    if (finishedToPrune != null) {
+                        scope.launch(Dispatchers.IO) {
+                            kdf.pruner.pruneSwap(finishedToPrune)
+                            refreshData()
+                        }
+                    } else {
+                        refreshData()
+                    }
                     withdrawCoin = null
                     withdrawInitialAmount = ""
-                    refreshData()
                 },
             )
         }

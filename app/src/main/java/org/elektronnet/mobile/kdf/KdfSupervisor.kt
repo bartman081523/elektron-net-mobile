@@ -44,6 +44,16 @@ class KdfSupervisor(
         rpcPasswordProvider = { rpcPassword },
     )
 
+    val pruner: SwapPruner = SwapPruner(kdfDir)
+
+    fun getRecentSwapsMerged(limit: Int = 10): List<SwapStatus> {
+        val live = try { client.myRecentSwaps(limit) } catch (_: Exception) { emptyList() }
+        val pruned = pruner.getPrunedReceipts().map { it.toSwapStatus() }
+        val prunedUuids = pruned.map { it.uuid }.toSet()
+        val nonPrunedLive = live.filter { it.uuid !in prunedUuids }
+        return (nonPrunedLive + pruned).sortedByDescending { it.events.lastOrNull()?.timestamp ?: 0L }
+    }
+
     var state: KdfState by mutableStateOf(KdfState.Stopped)
         private set
 
