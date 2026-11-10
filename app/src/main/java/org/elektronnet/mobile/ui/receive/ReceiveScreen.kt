@@ -89,9 +89,16 @@ fun ReceiveScreen(onClose: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onClose) { Text(stringResource(R.string.action_back)) }
-            Text(stringResource(R.string.receive_title), style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onClose) { Text(stringResource(R.string.action_back)) }
+                Text(stringResource(R.string.receive_title), style = MaterialTheme.typography.titleLarge)
+            }
+            org.elektronnet.mobile.ui.CoinBadge(NodeHost.activeCoinTicker)
         }
         val current = address
         if (current == null) {

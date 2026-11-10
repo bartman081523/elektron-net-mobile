@@ -81,6 +81,14 @@ object NodeHost {
     var wallets: List<OwnWallet> by mutableStateOf(emptyList())
         private set
 
+    val activeOwnWallet: OwnWallet? get() = wallets.firstOrNull { it.name == activeWallet }
+    val activeCoin: String get() = activeOwnWallet?.coin ?: "ELEK"
+    val activeCoinTicker: String get() = if (activeCoin.equals("BTC", ignoreCase = true)) {
+        if (ChainConfig.isTestnet) "tBTC" else "BTC"
+    } else {
+        if (ChainConfig.isTestnet) "tELEK" else "ELEK"
+    }
+
     // a watch-only wallet has no keys on this phone, a signing device signs for it
     fun isWatchOnly(name: String = activeWallet): Boolean = wallets.firstOrNull { it.name == name }?.watchOnly == true
 
@@ -274,6 +282,8 @@ object NodeHost {
         org.elektronnet.mobile.ui.theme.UnitState.current = store.amountUnit
         org.elektronnet.mobile.ui.theme.FiatState.load(store.fiat)
         org.elektronnet.mobile.wallet.Amount.unitProvider = { org.elektronnet.mobile.ui.theme.UnitState.current }
+        org.elektronnet.mobile.wallet.Amount.coinProvider = { activeCoin }
+        org.elektronnet.mobile.wallet.Amount.testnetProvider = { ChainConfig.isTestnet }
         org.elektronnet.mobile.ui.theme.NumberState.grouping = store.numberGrouping
         org.elektronnet.mobile.ui.theme.NumberState.groupChoice = org.elektronnet.mobile.wallet.SeparatorChoice.of(store.numberGroupChar)
         org.elektronnet.mobile.ui.theme.NumberState.decimalChoice = org.elektronnet.mobile.wallet.SeparatorChoice.of(store.numberDecimalChar)
@@ -625,7 +635,13 @@ object NodeHost {
     private const val FEE_CACHE_MS = 60_000L
     private const val LOG_CLEAN_EVERY_MS = 60 * 60 * 1000L
 
-    val paymentUri: PaymentUri = PaymentUri(ChainConfig.uriScheme, AddressCheck(ChainConfig.isTestnet))
+    fun paymentUriFor(coin: String = activeCoin): PaymentUri {
+        val isBtc = coin.equals("BTC", ignoreCase = true)
+        val scheme = if (isBtc) "bitcoin" else ChainConfig.uriScheme
+        return PaymentUri(scheme, AddressCheck(ChainConfig.isTestnet), isBtc = isBtc)
+    }
+
+    val paymentUri: PaymentUri get() = paymentUriFor(activeCoin)
 
     data class PeerRow(val peer: org.elektronnet.mobile.node.PeerInfo, val country: org.elektronnet.mobile.geo.Country?)
 

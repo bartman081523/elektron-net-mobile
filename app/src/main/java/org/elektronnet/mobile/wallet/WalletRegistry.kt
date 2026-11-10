@@ -2,7 +2,19 @@ package org.elektronnet.mobile.wallet
 
 import org.elektronnet.mobile.node.Json
 
-data class OwnWallet(val name: String, val label: String, val watchOnly: Boolean = false)
+data class OwnWallet(
+    val name: String,
+    val label: String,
+    val watchOnly: Boolean = false,
+    val coin: String = inferCoin(name, label),
+) {
+    companion object {
+        fun inferCoin(name: String, label: String, explicit: String? = null): String {
+            if (!explicit.isNullOrBlank()) return explicit.uppercase()
+            return if (name.contains("btc", ignoreCase = true) || label.contains("btc", ignoreCase = true)) "BTC" else "ELEK"
+        }
+    }
+}
 
 interface WalletRegistryStore {
     var json: String?
@@ -19,7 +31,14 @@ class WalletRegistry(private val store: WalletRegistryStore) {
     fun wallets(): List<OwnWallet> {
         val text = store.json ?: return emptyList()
         return runCatching {
-            (Json.parse(text) as List<*>).map { OwnWallet((it as Map<*, *>)["name"].toString(), it["label"].toString(), it["watch"] == true) }
+            (Json.parse(text) as List<*>).map {
+                val m = it as Map<*, *>
+                val name = m["name"].toString()
+                val label = m["label"].toString()
+                val watch = m["watch"] == true
+                val coin = OwnWallet.inferCoin(name, label, m["coin"]?.toString())
+                OwnWallet(name, label, watch, coin)
+            }
         }.getOrDefault(emptyList())
     }
 
@@ -57,8 +76,8 @@ class WalletRegistry(private val store: WalletRegistryStore) {
     }
 
     @Synchronized
-    fun add(name: String, label: String, watchOnly: Boolean = false): OwnWallet {
-        val entry = OwnWallet(name, label.trim(), watchOnly)
+    fun add(name: String, label: String, watchOnly: Boolean = false, coin: String? = null): OwnWallet {
+        val entry = OwnWallet(name, label.trim(), watchOnly, OwnWallet.inferCoin(name, label, coin))
         save(wallets().filter { it.name != name } + entry)
         return entry
     }
@@ -81,6 +100,12 @@ class WalletRegistry(private val store: WalletRegistryStore) {
     }
 
     private fun save(list: List<OwnWallet>) {
-        store.json = Json.stringify(list.map { linkedMapOf<String, Any?>("name" to it.name, "label" to it.label).also { m -> if (it.watchOnly) m["watch"] = true } })
+        store.json = Json.stringify(list.map {
+            linkedMapOf<String, Any?>(
+                "name" to it.name,
+                "label" to it.label,
+                "coin" to it.coin,
+            ).also { m -> if (it.watchOnly) m["watch"] = true }
+        })
     }
 }

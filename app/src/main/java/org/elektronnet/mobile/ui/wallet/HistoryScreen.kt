@@ -69,7 +69,14 @@ fun HistoryScreen(
         HistoryModel.days(pageItems, ZoneId.systemDefault()).flatMap { day -> listOf<Entry>(Entry.Header(day)) + day.rows.map { Entry.Item(it) } }
     }
     Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.history_title, walletTitle(wallet)), style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(stringResource(R.string.history_title, walletTitle(wallet)), style = MaterialTheme.typography.titleLarge)
+            wallet?.coin?.let { org.elektronnet.mobile.ui.CoinBadge(it) }
+        }
         if (syncNote != null) {
             HistoryProgressCard(syncNote)
         }
