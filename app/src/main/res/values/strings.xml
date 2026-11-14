@@ -245,7 +245,7 @@
     <string name="tx_open_explorer">Open in explorer</string>
     <string name="settings_security">Security</string>
     <string name="settings_biometric">Lock the app</string>
-    <string name="settings_biometric_hint">Ask for fingerprint, face or screen lock on open. Sending still needs your passphrase.</string>
+    <string name="settings_biometric_hint">Ask for your fingerprint or face on open. A screen lock is only used on phones without a sensor. Sending still needs your passphrase.</string>
     <string name="lock_title">Elektron is locked</string>
     <string name="lock_unlock">Unlock</string>
     <string name="lock_prompt">Unlock Elektron</string>

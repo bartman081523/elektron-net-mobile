@@ -245,7 +245,7 @@
     <string name="tx_open_explorer">Im Explorer öffnen</string>
     <string name="settings_security">Sicherheit</string>
     <string name="settings_biometric">App sperren</string>
-    <string name="settings_biometric_hint">Beim Öffnen Fingerabdruck, Gesicht oder Sperre abfragen. Senden braucht weiter die Passphrase.</string>
+    <string name="settings_biometric_hint">Beim Öffnen Fingerabdruck oder Gesicht abfragen. Eine Bildschirmsperre wird nur auf Geräten ohne Sensor verwendet. Senden braucht weiter die Passphrase.</string>
     <string name="lock_title">Elektron ist gesperrt</string>
     <string name="lock_unlock">Entsperren</string>
     <string name="lock_prompt">Elektron entsperren</string>
