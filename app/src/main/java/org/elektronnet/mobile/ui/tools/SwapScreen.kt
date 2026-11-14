@@ -57,6 +57,7 @@ import org.elektronnet.mobile.kdf.CoinBalance
 import org.elektronnet.mobile.kdf.KdfState
 import org.elektronnet.mobile.kdf.MakerOrder
 import org.elektronnet.mobile.kdf.Orderbook
+import org.elektronnet.mobile.kdf.orderbookVwap
 import org.elektronnet.mobile.kdf.SwapStatus
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -482,28 +483,18 @@ fun SwapScreen(onBack: () -> Unit) {
         // Live Orderbook
         val allAsks = orderbook?.asks.orEmpty()
         val allBids = orderbook?.bids.orEmpty()
-        val askVol = allAsks.fold(BigDecimal.ZERO) { acc, a -> acc + a.maxVolume }
-        val askVal = allAsks.fold(BigDecimal.ZERO) { acc, a -> acc + (a.price * a.maxVolume) }
-        val bidVol = allBids.fold(BigDecimal.ZERO) { acc, b -> acc + b.maxVolume }
-        val bidVal = allBids.fold(BigDecimal.ZERO) { acc, b -> acc + (b.price * b.maxVolume) }
-        val totalBookVol = askVol + bidVol
-        val totalBookVal = askVal + bidVal
-        val orderbookVwap = if (totalBookVol > BigDecimal.ZERO) {
-            runCatching {
-                totalBookVal.divide(totalBookVol, 10, java.math.RoundingMode.HALF_UP).stripTrailingZeros()
-            }.getOrNull()
-        } else null
+        val bookVwap = orderbookVwap(allAsks, allBids)
 
         Text("Orderbuch ($base / $rel)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (orderbookVwap != null) {
+                if (bookVwap != null) {
                     Text(
                         stringResource(
                             R.string.swap_vwap_label,
-                            orderbookVwap.toPlainString(),
+                            bookVwap.price.toPlainString(),
                             rel,
-                            totalBookVol.stripTrailingZeros().toPlainString(),
+                            bookVwap.baseVolume.toPlainString(),
                             base
                         ),
                         style = MaterialTheme.typography.bodySmall,

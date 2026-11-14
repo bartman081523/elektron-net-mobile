@@ -9,8 +9,11 @@ import org.elektronnet.mobile.node.JsonException
 
 data class OrderEntry(
     val price: BigDecimal,
+    /** Base-coin amount of the order, on both book sides. */
     val maxVolume: BigDecimal,
     val minVolume: BigDecimal,
+    /** Rel-coin amount of the order. */
+    val relVolume: BigDecimal = price * maxVolume,
     val address: String = "",
     val uuid: String = "",
 )
@@ -163,8 +166,8 @@ class KdfClient(
 
     fun orderbook(base: String, rel: String): Orderbook {
         val res = call("orderbook", mapOf("base" to base, "rel" to rel))
-        val asks = (res["asks"] as? List<*>)?.mapNotNull { parseOrderEntry(it) }.orEmpty()
-        val bids = (res["bids"] as? List<*>)?.mapNotNull { parseOrderEntry(it) }.orEmpty()
+        val asks = (res["asks"] as? List<*>)?.mapNotNull { parseOrderEntry(it, isAsk = true) }.orEmpty()
+        val bids = (res["bids"] as? List<*>)?.mapNotNull { parseOrderEntry(it, isAsk = false) }.orEmpty()
         return Orderbook(base = base, rel = rel, asks = asks, bids = bids)
     }
 
@@ -367,14 +370,31 @@ class KdfClient(
         return txHash
     }
 
-    private fun parseOrderEntry(obj: Any?): OrderEntry? {
+    /**
+     * One order book row. The daemon reports `base_max_volume` and
+     * `rel_max_volume` for both sides; a bare `maxvolume` is the base amount
+     * on the ask side and the rel amount on the bid side, so the side matters
+     * when only that field is present.
+     */
+    private fun parseOrderEntry(obj: Any?, isAsk: Boolean): OrderEntry? {
         val m = obj as? Map<*, *> ?: return null
         val price = toDecimal(m["price"])
-        val maxVol = toDecimal(m["maxvolume"] ?: m["volume"])
         val minVol = toDecimal(m["min_volume"] ?: m["minvolume"] ?: BigDecimal.ZERO)
+        val explicitBase = m["base_max_volume"]?.let(::toDecimal)?.takeIf { it > BigDecimal.ZERO }
+        val explicitRel = m["rel_max_volume"]?.let(::toDecimal)?.takeIf { it > BigDecimal.ZERO }
+        val bookVolume = toDecimal(m["maxvolume"] ?: m["volume"])
+        val baseVolume = explicitBase ?: if (isAsk) bookVolume else if (price > BigDecimal.ZERO) bookVolume.divide(price, 10, java.math.RoundingMode.HALF_UP) else BigDecimal.ZERO
+        val relVolume = explicitRel ?: (price * baseVolume)
         val address = m["address"]?.toString().orEmpty()
         val uuid = m["uuid"]?.toString().orEmpty()
-        return OrderEntry(price = price, maxVolume = maxVol, minVolume = minVol, address = address, uuid = uuid)
+        return OrderEntry(
+            price = price,
+            maxVolume = baseVolume,
+            minVolume = minVol,
+            relVolume = relVolume,
+            address = address,
+            uuid = uuid,
+        )
     }
 
     private fun toDecimal(v: Any?): BigDecimal = when (v) {
