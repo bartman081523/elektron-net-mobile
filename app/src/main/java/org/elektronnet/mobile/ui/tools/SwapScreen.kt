@@ -376,6 +376,25 @@ fun SwapScreen(onBack: () -> Unit) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Limit-Order einstellen ($base verkaufen gegen $rel)", style = MaterialTheme.typography.titleSmall)
 
+                    if (base.contains("ELEK", ignoreCase = true) && rel.contains("BTC", ignoreCase = true)) {
+                        OutlinedButton(
+                            onClick = {
+                                makerPrice = "0.0000000054"
+                                if (makerVolume.isBlank() || (makerVolume.toBigDecimalOrNull() ?: BigDecimal.ZERO) < BigDecimal("2000")) {
+                                    makerVolume = "2000"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.swap_energy_floor_preset), fontWeight = FontWeight.SemiBold)
+                        }
+                        Text(
+                            stringResource(R.string.swap_energy_floor_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     OutlinedTextField(
                         value = makerPrice,
                         onValueChange = { makerPrice = it },
@@ -391,6 +410,31 @@ fun SwapScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
+
+                    val totalRelEarned = runCatching {
+                        val p = BigDecimal(makerPrice.trim())
+                        val v = BigDecimal(makerVolume.trim())
+                        p * v
+                    }.getOrNull()
+
+                    if (totalRelEarned != null && rel.contains("BTC", ignoreCase = true)) {
+                        val sats = (totalRelEarned * BigDecimal("100000000")).toLong()
+                        if (sats < 546) {
+                            Text(
+                                stringResource(R.string.swap_dust_warning, sats.toString()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        } else {
+                            Text(
+                                stringResource(R.string.swap_dust_ok, sats.toString(), totalRelEarned.toPlainString(), rel),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF2E7D32),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
 
                     Button(
                         onClick = {
@@ -436,9 +480,40 @@ fun SwapScreen(onBack: () -> Unit) {
         }
 
         // Live Orderbook
+        val allAsks = orderbook?.asks.orEmpty()
+        val allBids = orderbook?.bids.orEmpty()
+        val askVol = allAsks.fold(BigDecimal.ZERO) { acc, a -> acc + a.maxVolume }
+        val askVal = allAsks.fold(BigDecimal.ZERO) { acc, a -> acc + (a.price * a.maxVolume) }
+        val bidVol = allBids.fold(BigDecimal.ZERO) { acc, b -> acc + b.maxVolume }
+        val bidVal = allBids.fold(BigDecimal.ZERO) { acc, b -> acc + (b.price * b.maxVolume) }
+        val totalBookVol = askVol + bidVol
+        val totalBookVal = askVal + bidVal
+        val orderbookVwap = if (totalBookVol > BigDecimal.ZERO) {
+            runCatching {
+                totalBookVal.divide(totalBookVol, 10, java.math.RoundingMode.HALF_UP).stripTrailingZeros()
+            }.getOrNull()
+        } else null
+
         Text("Orderbuch ($base / $rel)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (orderbookVwap != null) {
+                    Text(
+                        stringResource(
+                            R.string.swap_vwap_label,
+                            orderbookVwap.toPlainString(),
+                            rel,
+                            totalBookVol.stripTrailingZeros().toPlainString(),
+                            base
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -524,6 +599,52 @@ fun SwapScreen(onBack: () -> Unit) {
 
         // Recent Swaps
         if (recentSwaps.isNotEmpty()) {
+            val finishedSwapsForPair = recentSwaps.filter { sw ->
+                (sw.state == "Finished" || sw.isPruned) &&
+                ((sw.myCoin.equals(base, ignoreCase = true) && sw.otherCoin.equals(rel, ignoreCase = true)) ||
+                 (sw.myCoin.equals(rel, ignoreCase = true) && sw.otherCoin.equals(base, ignoreCase = true)))
+            }
+            var totalRealizedBaseVol = BigDecimal.ZERO
+            var totalRealizedRelVal = BigDecimal.ZERO
+            for (sw in finishedSwapsForPair) {
+                if (sw.myCoin.equals(base, ignoreCase = true)) {
+                    totalRealizedBaseVol += sw.myAmount
+                    totalRealizedRelVal += sw.otherAmount
+                } else {
+                    totalRealizedBaseVol += sw.otherAmount
+                    totalRealizedRelVal += sw.myAmount
+                }
+            }
+            val realizedVwap = if (totalRealizedBaseVol > BigDecimal.ZERO) {
+                runCatching {
+                    totalRealizedRelVal.divide(totalRealizedBaseVol, 10, java.math.RoundingMode.HALF_UP).stripTrailingZeros()
+                }.getOrNull()
+            } else null
+
+            if (realizedVwap != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            stringResource(
+                                R.string.swap_realized_vwap_label,
+                                realizedVwap.toPlainString(),
+                                rel,
+                                totalRealizedBaseVol.stripTrailingZeros().toPlainString(),
+                                base,
+                                finishedSwapsForPair.size
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

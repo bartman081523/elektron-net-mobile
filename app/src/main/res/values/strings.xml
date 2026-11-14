@@ -384,6 +384,12 @@
     <string name="swap_pruned_rate" translatable="false">Kurs: %1$s</string>
     <string name="swap_prune_confirm_title" translatable="false">Historie prunen (Privatsphäre)</string>
     <string name="swap_prune_confirm_body" translatable="false">Entfernt alle Transaktions-Hexdumps, Wechselgeld- und Gegenpartei-Adressen unwiderruflich vom Gerät. Es verbleibt nur der anonyme Kurs- und Ausführungsnachweis.</string>
+    <string name="swap_vwap_label" translatable="false">Orderbuch-VWAP: %1$s %2$s (Tiefe: %3$s %4$s)</string>
+    <string name="swap_realized_vwap_label" translatable="false">Realisierter Swap-VWAP: %1$s %2$s (Volumen: %3$s %4$s aus %5$d Swaps)</string>
+    <string name="swap_energy_floor_preset" translatable="false">⚡ Energy-Floor (0.54 sat/ELEK)</string>
+    <string name="swap_energy_floor_hint" translatable="false">Energy-Floor Kurs: 0.0000000054 BTC/ELEK (0.54 sat). Mindestens 2.000 ELEK für Auszahlung über dem Bitcoin Dust-Limit (546 sat).</string>
+    <string name="swap_dust_warning" translatable="false">⚠️ Erlös (%1$s sat) unter Bitcoin Dust-Limit (546 sat). Bitte Menge erhöhen!</string>
+    <string name="swap_dust_ok" translatable="false">✓ Erlös: %1$s Satoshis (%2$s %3$s) — über Dust-Limit (546 sat)</string>
     <string name="escrow_title">Escrow</string>
     <string name="escrow_intro">An escrow is a shared wallet. Several people each hold one key, and you choose how many of them must approve a payment, for example 2 of 3 with buyer, seller and a neutral person. Nobody can spend alone unless you choose 1.</string>
     <string name="escrow_none">No escrow wallets yet.</string>

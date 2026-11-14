@@ -129,6 +129,7 @@ object KdfConfig {
                     "orderbook_ticker" to "tELEK",
                     "rpcport" to ChainConfig.rpcPort,
                     "mm2" to 1,
+                    "min_volume" to "0.00000546",
                     "protocol" to mapOf("type" to "UTXO"),
                     "electrum" to TELEK_ELECTRUM_SERVERS.map { mapOf("url" to it, "protocol" to "TCP") },
                 ),
@@ -153,6 +154,7 @@ object KdfConfig {
                     "orderbook_ticker" to "tBTC",
                     "rpcport" to ChainConfig.rpcPort,
                     "mm2" to 1,
+                    "min_volume" to "0.00000546",
                     "is_testnet" to true,
                     "protocol" to mapOf("type" to "UTXO"),
                     "electrum" to TBTC_ELECTRUM_SERVERS.map { mapOf("url" to it, "protocol" to "TCP") },
@@ -237,6 +239,12 @@ object KdfConfig {
             )
         }
 
+        val seednodes = if (isTestnet) {
+            listOf("127.0.0.1", seednode.trim().ifEmpty { DEFAULT_SEEDNODE })
+        } else {
+            listOf(seednode.trim().ifEmpty { DEFAULT_SEEDNODE })
+        }
+
         return linkedMapOf(
             "gui" to "elektron-net",
             "netid" to netid,
@@ -245,7 +253,7 @@ object KdfConfig {
             "passphrase" to passphrase,
             "rpc_password" to rpcPassword,
             "dbdir" to dbDir.absolutePath,
-            "seednodes" to listOf(seednode.trim().ifEmpty { DEFAULT_SEEDNODE }),
+            "seednodes" to seednodes,
             "coins" to coins,
         )
     }
