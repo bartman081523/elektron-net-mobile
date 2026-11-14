@@ -31,6 +31,12 @@ class MainActivity : FragmentActivity() {
         startNode()
     }
 
+    // A biometric can be locked permanently until the user re-enrolls; the
+    // screen lock is then the only way back into the app, never a shortcut.
+    private val deviceCredentialFallback = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) AppLockState.unlock()
+    }
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(AppLanguage.wrap(newBase))
     }
@@ -101,6 +107,10 @@ class MainActivity : FragmentActivity() {
             title = getString(R.string.lock_prompt),
             negative = getString(R.string.lock_cancel),
             onSuccess = AppLockState::unlock,
+            onFallbackToCredential = {
+                val intent = Biometric.confirmDeviceCredentialIntent(this, getString(R.string.lock_prompt))
+                if (intent != null) deviceCredentialFallback.launch(intent)
+            },
         )
     }
 
