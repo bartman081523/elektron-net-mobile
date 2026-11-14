@@ -102,6 +102,7 @@ object KdfConfig {
         rpcPassword: String,
         rpcPort: Int = DEFAULT_RPC_PORT,
         seednode: String = DEFAULT_SEEDNODE,
+        extraSeednodes: List<String> = emptyList(),
     ): Map<String, Any?> {
         val dbDir = File(kdfDir, "db").apply { mkdirs() }
         val netid = if (isTestnet) NETID_TESTNET else NETID_MAINNET
@@ -241,7 +242,7 @@ object KdfConfig {
             listOf("127.0.0.1", seednode.trim().ifEmpty { DEFAULT_SEEDNODE })
         } else {
             listOf(seednode.trim().ifEmpty { DEFAULT_SEEDNODE })
-        }
+        } + extraSeednodes
 
         return linkedMapOf(
             "gui" to "elektron-net",

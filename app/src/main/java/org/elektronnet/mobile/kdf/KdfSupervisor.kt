@@ -139,13 +139,22 @@ class KdfSupervisor(
                 "elkkdf1_default_seedless_identity"
             }
 
-            // Write MM2.json
+            // Write MM2.json. peers.txt holds extra seednodes, one per line:
+            // a LAN test mesh has no reachable public seed and needs another
+            // node as a meeting point.
+            val extraPeers = File(kdfDir, "peers.txt")
+                .takeIf { it.isFile }
+                ?.readLines()
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() && !it.startsWith("#") }
+                .orEmpty()
             val conf = KdfConfig.buildConfig(
                 kdfDir = kdfDir,
                 isTestnet = ChainConfig.isTestnet,
                 passphrase = passphrase,
                 rpcPassword = rpcPassword,
                 rpcPort = rpcPort,
+                extraSeednodes = extraPeers,
             )
             confFile.writeText(Json.stringify(conf))
 
