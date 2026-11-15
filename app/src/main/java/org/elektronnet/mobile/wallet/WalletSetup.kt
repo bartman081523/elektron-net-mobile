@@ -81,7 +81,7 @@ class WalletSetup(
             watch != null -> node.createWatchOnly(watch)
             req.privateKey != null -> node.recoverPrivateKey(req.privateKey, req.passphrase)
             req.restore -> node.recover(req.phrase, req.passphrase, req.seedPassphrase)
-            else -> node.create(req.phrase, req.passphrase)
+            else -> node.create(req.phrase, req.passphrase, req.seedPassphrase)
         }
         when (val result = outcome) {
             is BootstrapResult.Created -> {

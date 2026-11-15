@@ -15,7 +15,6 @@ data class FirstRunState(
     val privateKey: String? = null,
     val failure: BootstrapFailure? = null,
     val addWallet: Boolean = false,
-    val seedPassphrase: String = "",
 )
 
 object FirstRunFlow {
@@ -34,10 +33,10 @@ object FirstRunFlow {
         FirstRunStep.PhraseShow -> state.copy(step = FirstRunStep.PhraseQuiz)
         FirstRunStep.PhraseQuiz -> state.copy(step = FirstRunStep.PassphraseNew)
         FirstRunStep.PassphraseNew -> state.copy(step = FirstRunStep.Creating, failure = null)
-        FirstRunStep.Creating -> state.copy(step = FirstRunStep.Done, phrase = emptyList(), privateKey = null, seedPassphrase = "")
+        FirstRunStep.Creating -> state.copy(step = FirstRunStep.Done, phrase = emptyList(), privateKey = null)
         FirstRunStep.RestoreEnter -> state.copy(step = FirstRunStep.PassphraseRestore)
         FirstRunStep.PassphraseRestore -> state.copy(step = FirstRunStep.Restoring, failure = null)
-        FirstRunStep.Restoring -> state.copy(step = FirstRunStep.Done, phrase = emptyList(), privateKey = null, seedPassphrase = "")
+        FirstRunStep.Restoring -> state.copy(step = FirstRunStep.Done, phrase = emptyList(), privateKey = null)
         FirstRunStep.Done -> state
     }
 
@@ -52,7 +51,7 @@ object FirstRunFlow {
         FirstRunStep.PhraseQuiz -> state.copy(step = FirstRunStep.PhraseShow)
         FirstRunStep.PassphraseNew -> state.copy(step = FirstRunStep.PhraseQuiz)
         FirstRunStep.RestoreEnter -> state.copy(step = if (state.addWallet) FirstRunStep.Welcome else FirstRunStep.Notifications)
-        FirstRunStep.PassphraseRestore -> state.copy(step = FirstRunStep.RestoreEnter, phrase = emptyList(), privateKey = null, seedPassphrase = "")
+        FirstRunStep.PassphraseRestore -> state.copy(step = FirstRunStep.RestoreEnter, phrase = emptyList(), privateKey = null)
     }
 
     fun failed(state: FirstRunState, failure: BootstrapFailure): FirstRunState = state.copy(

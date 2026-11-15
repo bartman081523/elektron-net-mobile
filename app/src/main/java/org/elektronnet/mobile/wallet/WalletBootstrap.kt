@@ -23,8 +23,9 @@ class WalletBootstrap(
     private val removeWalletFiles: (String) -> Unit,
     private val walletName: String = DEFAULT_WALLET,
 ) {
-    fun create(mnemonic: List<String>, passphrase: String): BootstrapResult =
-        run(mnemonic, passphrase, recover = false)
+    // seedPassphrase is the optional BIP 39 extra word (25th word), empty gives the seed of the plain recovery phrase
+    fun create(mnemonic: List<String>, passphrase: String, seedPassphrase: String = ""): BootstrapResult =
+        run(mnemonic, passphrase, recover = false, seedPassphrase)
 
     fun recover(mnemonic: List<String>, passphrase: String, seedPassphrase: String = ""): BootstrapResult =
         run(mnemonic, passphrase, recover = true, seedPassphrase = seedPassphrase)
