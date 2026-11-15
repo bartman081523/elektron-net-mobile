@@ -13,10 +13,26 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import org.elektronnet.mobile.node.Json
 
+/** One keystore of an Electrum multisig wallet, normalised to a standard xprv/xpub. */
+data class MultisigKey(val extKey: String, val derivation: String)
+
 sealed interface ElectrumWalletContent {
     data class Seed(val words: List<String>, val type: ElectrumSeedType, val passphrase: String = "") : ElectrumWalletContent
     data class MasterKey(val xprv: String, val type: ElectrumSeedType) : ElectrumWalletContent
     data class ImportedKeys(val wifKeys: List<String>) : ElectrumWalletContent
+
+    /**
+     * m-of-n wallet: the file carries one keystore per cosigner under the keys
+     * `x1`..`xN`. Segwit wallets use SLIP-132 headers (zprv), legacy wallets
+     * plain xprv; both are converted to the standard header for the node.
+     */
+    data class Multisig(
+        val m: Int,
+        val n: Int,
+        val segwit: Boolean,
+        val watchOnly: Boolean,
+        val keys: List<MultisigKey>,
+    ) : ElectrumWalletContent
 }
 
 class InvalidElectrumPasswordException(message: String = "Invalid password") : Exception(message)
@@ -119,6 +135,33 @@ object ElectrumWalletParser {
             ?: throw CorruptedElectrumWalletException("Invalid JSON root object")
         val useEncryption = root["use_encryption"] == true
         val walletType = root["wallet_type"]?.toString() ?: "standard"
+
+        val multisigType = Regex("^(\\d+)of(\\d+)$").find(walletType.lowercase())
+        if (multisigType != null) {
+            val m = multisigType.groupValues[1].toInt()
+            val n = multisigType.groupValues[2].toInt()
+            val keys = mutableListOf<MultisigKey>()
+            var segwit = false
+            var watchOnly = false
+            for (index in 1..n) {
+                val name = "x$index"
+                val ks = root[name] as? Map<*, *>
+                    ?: throw CorruptedElectrumWalletException("Missing keystore $name")
+                val encXprv = ks["xprv"]?.toString()
+                val encXpub = ks["xpub"]?.toString()
+                val rawKey = encXprv ?: encXpub
+                    ?: throw CorruptedElectrumWalletException("Keystore $name has neither xprv nor xpub")
+                val key = if (useEncryption) pwDecode(rawKey, password) else rawKey
+                if (key.startsWith("zprv") || key.startsWith("zpub") ||
+                    key.startsWith("vprv") || key.startsWith("vpub")
+                ) {
+                    segwit = true
+                }
+                if (encXprv == null) watchOnly = true
+                keys += MultisigKey(normalizeExtKey(key), normalizeDerivation(ks["derivation"]?.toString()))
+            }
+            return ElectrumWalletContent.Multisig(m, n, segwit, watchOnly, keys)
+        }
 
         if (walletType == "imported") {
             val keypairsMap = (root["keypairs"] as? Map<*, *>)
@@ -325,4 +368,46 @@ object Secp256k1 {
         val z3 = p1.z.multiply(h).mod(P)
         return JacobianPoint(x3, y3, z3)
     }
+}
+
+/** "m/0'" -> "0h"; an empty derivation stays empty. */
+private fun normalizeDerivation(raw: String?): String {
+    val trimmed = (raw ?: "").trim().removePrefix("m/").removePrefix("M/").trim('/')
+    if (trimmed.isEmpty()) return ""
+    return trimmed.split('/').joinToString("/") { segment ->
+        when {
+            segment.endsWith("'") -> segment.dropLast(1) + "h"
+            segment.endsWith("H") -> segment.dropLast(1) + "h"
+            else -> segment
+        }
+    }
+}
+
+/**
+ * SLIP-132 headers mark the script type (zprv/zpub = p2wsh, vprv/vpub =
+ * their testnet twins). The node's descriptor parser only accepts the
+ * standard versions, so the four version bytes are rewritten while the
+ * key material stays identical.
+ */
+private fun normalizeExtKey(key: String): String {
+    val (target, source) = when {
+        key.startsWith("zprv") -> 0x0488ADE4 to 0x04B2430C
+        key.startsWith("zpub") -> 0x0488B21E to 0x04B24746
+        key.startsWith("vprv") -> 0x04358394 to 0x045F18BC
+        key.startsWith("vpub") -> 0x043587CF to 0x045F1CF6
+        else -> return key
+    }
+    val payload = Base58.decodeChecked(key) ?: return key
+    if (payload.size < 4) return key
+    val current = ((payload[0].toInt() and 0xff) shl 24) or
+        ((payload[1].toInt() and 0xff) shl 16) or
+        ((payload[2].toInt() and 0xff) shl 8) or
+        (payload[3].toInt() and 0xff)
+    if (current != source) return key
+    val out = payload.copyOf()
+    out[0] = (target ushr 24).toByte()
+    out[1] = (target ushr 16).toByte()
+    out[2] = (target ushr 8).toByte()
+    out[3] = target.toByte()
+    return Base58.encodeChecked(out)
 }

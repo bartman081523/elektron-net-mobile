@@ -43,4 +43,23 @@ object Descriptors {
     }
 
     private fun path(masterKey: String, coinType: Int, chain: Int) = "wpkh($masterKey/84h/${coinType}h/0h/$chain/*)"
+
+    /**
+     * Electrum multisig: every cosigner keystore contributes one key per chain
+     * at `<xprv>/<derivation>/<chain>/<index>`. Electrum sorts the pubkeys inside the
+     * script, which is exactly `sortedmulti`.
+     */
+    fun forElectrumMultisig(m: Int, segwit: Boolean, keys: List<MultisigKey>): List<DescriptorSpec> {
+        fun path(key: MultisigKey, chain: Int): String {
+            val suffix = if (key.derivation.isEmpty()) "$chain/*" else "${key.derivation}/$chain/*"
+            return "${key.extKey}/$suffix"
+        }
+        val script = if (segwit) "wsh" else "sh"
+        val receive = "$script(sortedmulti($m,${keys.joinToString(",") { path(it, 0) }}))"
+        val change = "$script(sortedmulti($m,${keys.joinToString(",") { path(it, 1) }}))"
+        return listOf(
+            DescriptorSpec(receive, active = true, internal = false, legacy = !segwit),
+            DescriptorSpec(change, active = true, internal = true, legacy = !segwit),
+        )
+    }
 }

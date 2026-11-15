@@ -91,6 +91,9 @@ class WalletRestore(
                 is ElectrumWalletContent.MasterKey -> {
                     Descriptors.forElectrumSeed(content.xprv, content.type)
                 }
+                is ElectrumWalletContent.Multisig -> {
+                    Descriptors.forElectrumMultisig(content.m, content.segwit, content.keys)
+                }
                 is ElectrumWalletContent.ImportedKeys -> {
                     val list = mutableListOf<DescriptorSpec>()
                     for (wif in content.wifKeys) {
