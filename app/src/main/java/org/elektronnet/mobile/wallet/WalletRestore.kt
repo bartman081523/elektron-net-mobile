@@ -106,7 +106,15 @@ class WalletRestore(
 
             val requests = specs.map { item ->
                 val info = rpc.call("getdescriptorinfo", listOf(item.descriptor), null) as Map<*, *>
-                val descriptorWithChecksum = info["descriptor"].toString()
+                // getdescriptorinfo prints the canonical descriptor without its private keys,
+                // so importing that string would give a watch-only wallet. Only the checksum
+                // is taken from the answer and appended to our own descriptor.
+                val checksum = info["checksum"]?.toString()
+                val descriptorWithChecksum = if (checksum.isNullOrEmpty()) {
+                    item.descriptor
+                } else {
+                    "${item.descriptor}#$checksum"
+                }
                 val request = linkedMapOf<String, Any?>(
                     "desc" to descriptorWithChecksum,
                     "timestamp" to 0,
