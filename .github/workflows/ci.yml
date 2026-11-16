@@ -52,6 +52,8 @@ jobs:
             echo "no Linux node asset in the fork's releases, the integration tests stay skipped"
             exit 0
           fi
+          # the node links libevent/sqlite/boost dynamically
+          sudo apt-get install -y --no-install-recommends libevent-dev libsqlite3-dev
           mkdir -p "$RUNNER_TEMP/node"
           curl -fsSL "$url" | tar -xz -C "$RUNNER_TEMP/node" --strip-components=1
           chmod +x "$RUNNER_TEMP/node/elektrond" "$RUNNER_TEMP/node/elektron-cli"
