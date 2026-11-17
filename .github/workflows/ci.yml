@@ -41,24 +41,35 @@ jobs:
         run: bash tools/fetch-geoip.sh
       - name: Build both flavors
         run: gradle --no-daemon :app:assembleMainnetDebug :app:assembleTnetDebug
-      - name: Node binary for the integration tests
+      - name: Node binaries for the integration tests
         continue-on-error: true
         run: |
           set -euo pipefail
-          url=$(curl -fsSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/bartman081523/elektron-net/releases?per_page=30" \
-            | python3 -c "import json,sys;print(next((a['browser_download_url'] for r in json.load(sys.stdin) for a in r.get('assets',[]) if a['name'].startswith('elektron-net-linux-') and a['name'].endswith('.tar.gz')),''))")
-          if [ -z "$url" ]; then
-            echo "no Linux node asset in the fork's releases, the integration tests stay skipped"
+          api="https://api.github.com/repos/bartman081523/elektron-net/releases?per_page=30"
+          urls=$(curl -fsSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$api" \
+            | jq -r '[.[] | .assets[] | .name + " " + .browser_download_url
+                      | select(test("^elektron-net-linux-v[0-9.]+-x86_64-static[.]tar[.]gz "))]
+                     | sort | reverse | .[]' || true)
+          # newest static asset is the node under test, v4.0.5 is the old one the upgrade tests compare against
+          new_url=$(echo "$urls" | head -1 | cut -d" " -f2)
+          old_url=$(echo "$urls" | grep -F -m1 "elektron-net-linux-v4.0.5-" | cut -d" " -f2 || true)
+          if [ -z "$new_url" ]; then
+            echo "no static Linux node asset yet, the integration tests stay skipped"
             exit 0
           fi
-          # the node links libevent/sqlite/boost dynamically
-          sudo apt-get install -y --no-install-recommends libevent-dev libsqlite3-dev
-          mkdir -p "$RUNNER_TEMP/node"
-          curl -fsSL "$url" | tar -xz -C "$RUNNER_TEMP/node" --strip-components=1
-          chmod +x "$RUNNER_TEMP/node/elektrond" "$RUNNER_TEMP/node/elektron-cli"
+          fetch() {
+            rm -rf "$2"; mkdir -p "$2"
+            curl -fsSL "$1" | tar -xz -C "$2" --strip-components=1
+            chmod +x "$2/elektrond" "$2/elektron-cli"
+          }
+          fetch "$new_url" "$RUNNER_TEMP/node"
           "$RUNNER_TEMP/node/elektrond" --version
           echo "ELEKTROND_BIN=$RUNNER_TEMP/node/elektrond" >> "$GITHUB_ENV"
+          if [ -n "${old_url:-}" ]; then
+            fetch "$old_url" "$RUNNER_TEMP/node-old"
+            "$RUNNER_TEMP/node-old/elektrond" --version
+            echo "ELEKTROND_BIN_OLD=$RUNNER_TEMP/node-old/elektrond" >> "$GITHUB_ENV"
+          fi
 
       - name: Unit tests and lint for both flavors
         # --rerun-tasks: the build cache would otherwise replay test results that
