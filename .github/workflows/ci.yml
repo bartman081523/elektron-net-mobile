@@ -62,6 +62,10 @@ jobs:
             curl -fsSL "$1" | tar -xz -C "$2" --strip-components=1
             chmod +x "$2/elektrond" "$2/elektron-cli"
           }
+          # tor for the four tests that drive the bundled Tor through its control port
+          if sudo apt-get install -y --no-install-recommends tor >/dev/null 2>&1; then
+            echo "TOR_BIN=$(command -v tor)" >> "$GITHUB_ENV"
+          fi
           fetch "$new_url" "$RUNNER_TEMP/node"
           "$RUNNER_TEMP/node/elektrond" --version
           echo "ELEKTROND_BIN=$RUNNER_TEMP/node/elektrond" >> "$GITHUB_ENV"
